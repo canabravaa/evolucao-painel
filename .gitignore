@@ -1,0 +1,5 @@
+# Credenciais de administrador nunca vão para o repositório
+*serviceAccount*.json
+*-sa.json
+node_modules/
+.env
