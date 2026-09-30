@@ -267,6 +267,10 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
         <div class="b3list" id="b3list"></div>
         <p class="muted" style="font-size:.85rem">Concluídas: <b class="num" id="b3count">0</b> de 3 · toque no quadrado para marcar ✓ feita, ~ parcial ou ✗ não feita</p>
       </div>
+      <div class="fgroup"><h3>🏠 Pessoal · Big 3</h3>
+        <div class="b3list" id="b3listP"></div>
+        <p class="muted" style="font-size:.85rem">Concluídas: <b class="num" id="b3countP">0</b> de 3</p>
+      </div>
       <div class="fgroup"><h3>🌙 Noite deste dia</h3><div class="toggles" data-group="noite"></div>
         <div class="fields">
           <div class="field"><label for="pos21">Tela depois das 21h (min)</label><input id="pos21" type="number" min="0" inputmode="numeric"></div>
@@ -527,13 +531,13 @@ function renderAll(){
   $("#progTxt").textContent=`Dia ${el} de ${total} · Semana ${Math.min(cw,12)} de 12 · ${Math.round(el/total*100)}% do ciclo`;
   const ks=sortedKeys(), inCycle=ks.filter(k=>k>="2026-09-29");
   const camaK=inCycle.filter(k=>DIAS[k].cama); const camaOk=camaK.filter(k=>DIAS[k].cama==="y").length;
-  const c1=lastVal("cel1"), b3=avgLast("big3Feitos"), notas=inCycle.filter(k=>DIAS[k].nota==="y").length;
+  const c1=lastVal("cel1"), b3=avgLast("big3Feitos"), b3p=avgLast("big3PFeitos"), notas=inCycle.filter(k=>DIAS[k].nota==="y").length;
   const p21=lastVal("pos21"), peg=avgLast("pegadas"), soc=avgLast("social"), sc=weekScores(), scNow=sc[Math.min(cw,12)-1];
   const c1d = c1&&c1.prev ? toMin(c1.v)-toMin(c1.prev) : null;
   const K=[
     {l:"Noites até 22:00",v:`${camaOk}<small>/ ${camaK.length}</small>`,d:`sequência atual: ${streak("cama")}`,c:camaOk?"up":"flat",dots:camaK.slice(-14).map(k=>DIAS[k].cama)},
     {l:"Primeiro uso do celular",v:c1?c1.v:"—",d:c1d!=null?`${c1d>=0?"▲ +":"▼ "}${hm(Math.abs(c1d))} vs. anterior · meta ≥ 05:10`:"meta ≥ 05:10",c:c1&&toMin(c1.v)>=310?"up":"down"},
-    {l:"Big 3 concluídos",v:b3!=null?`${(Math.round(b3*10)/10).toString().replace(".",",")}<small>/ 3</small>`:"—",d:"média 7 dias · meta ≥ 2",c:b3>=2?"up":"flat"},
+    {l:"Big 3 · trabalho | pessoal",v:`${b3!=null?String(Math.round(b3*10)/10).replace(".",","):"—"}<small>|</small> ${b3p!=null?String(Math.round(b3p*10)/10).replace(".",","):"—"}`,d:"média 7 dias · meta ≥ 2 de 3 em cada",c:(b3>=2&&(b3p==null||b3p>=2))?"up":"flat"},
     {l:"Dias com nota",v:`${notas}<small>/ ${Math.max(el,1)}</small>`,d:"meta 6 de 7",c:notas/Math.max(el,1)>=6/7?"up":"flat"},
     {l:"Tela após 21:00",v:p21?`${p21.v}<small>min</small>`:"—",d:p21?`${lbl(p21.k)} · meta 0`:"meta 0",c:p21&&p21.v===0?"up":"down"},
     {l:"Pegadas por dia",v:peg!=null?Math.round(peg):"—",d:"média · base 122 · meta < 90",c:peg!=null&&peg<90?"up":"down"},
@@ -548,7 +552,7 @@ function renderAll(){
     chart("Primeiro uso do celular","mais tarde = melhor",last.map(k=>({l:lbl(k),v:toMin(DIAS[k].cel1)})),270,480,295,310,hm,""),
     chart("Pegadas no celular por dia","menos = melhor",last.map(k=>({l:lbl(k),v:DIAS[k].pegadas??null})),0,160,122,90,v=>Math.round(v),""),
     chart("Tela depois das 21:00","meta: zero",last.map(k=>({l:lbl(k),v:DIAS[k].pos21??null})),0,60,45,0,v=>Math.round(v)," min"),
-    chart("Big 3 concluídos","mais = melhor",last.map(k=>({l:lbl(k),v:DIAS[k].big3Feitos??null})),0,3,1,2,v=>String(Math.round(v*10)/10).replace(".",","),""),
+    chart("Big 3 concluídos","linha cheia: trabalho · tracejada: pessoal",last.map(k=>({l:lbl(k),v:DIAS[k].big3Feitos??null,v2:DIAS[k].big3PFeitos??null})),0,3,1,2,v=>String(Math.round(v*10)/10).replace(".",","),""),
   ].join("");
 
   // Ciclo
@@ -561,7 +565,7 @@ function renderAll(){
   $("#avg").textContent=cnt?Math.round(sum/cnt)+"%":"—"; $("#onTarget").textContent=`${hit} de ${cnt}`;
   const IND=[
     [["Noites com deitar até 22:00","esforço","~0/7",`${camaOk}/${camaK.length}`,"≥ 5/7"],["Tela depois das 21:00","esforço","~45 min",p21?p21.v+" min":"—","0 min"],["Primeiro uso do celular","esforço","04:55",c1?c1.v:"—","≥ 05:10"],["HRV (valor)","resultado","a medir",lastVal("hrvV")?lastVal("hrvV").v:"—","em alta"]],
-    [["Big 3 concluídos (média)","resultado","1/3",b3!=null?(Math.round(b3*10)/10)+"/3":"—","≥ 2/3"],["Pegadas no celular por dia","esforço","122",peg!=null?Math.round(peg):"—","< 90"],["X + Instagram por dia","esforço","~63 min",soc!=null?Math.round(soc)+" min":"—","≤ 30 min"],["Revisões semanais feitas","esforço","0",`${inCycle.filter(k=>DIAS[k].rev==="y").length}/12`,"12/12"]],
+    [["Big 3 trabalho (média)","resultado","1/3",b3!=null?(Math.round(b3*10)/10)+"/3":"—","≥ 2/3"],["Big 3 pessoal (média)","resultado","—",b3p!=null?(Math.round(b3p*10)/10)+"/3":"—","≥ 2/3"],["Pegadas no celular por dia","esforço","122",peg!=null?Math.round(peg):"—","< 90"],["X + Instagram por dia","esforço","~63 min",soc!=null?Math.round(soc)+" min":"—","≤ 30 min"],["Revisões semanais feitas","esforço","0",`${inCycle.filter(k=>DIAS[k].rev==="y").length}/12`,"12/12"]],
     [["Pendências resolvidas","resultado","0/5","ver Obsidian","5/5"],["Serviços renegociados","resultado","0/3","ver Obsidian","3/3"],["Ações financeiras feitas","esforço","0",String(inCycle.filter(k=>DIAS[k].fin==="y").length),"12"]],
   ];
   $("#goals").innerHTML=GOALS.map((g,i)=>`<article class="goal"><div class="goal-top"><h3>${g.icon} Meta ${i+1} · ${g.name}</h3><span class="eyebrow">${g.tactics.reduce((a,t)=>a+t[2],0)} táticas / semana</span></div><p class="muted">${g.target}</p><div class="cols"><div class="tbl"><table><thead><tr><th>Indicador</th><th class="r">Base</th><th class="r">Atual</th><th class="r">Meta</th></tr></thead><tbody>${IND[i].map(x=>`<tr><td>${x[0]}<br><span class="kind">${x[1]}</span></td><td class="r num">${x[2]}</td><td class="r num">${x[3]}</td><td class="r num">${x[4]}</td></tr>`).join("")}</tbody></table></div><div class="tbl"><table><thead><tr><th>Tática</th><th class="r">Por semana</th></tr></thead><tbody>${g.tactics.map(t=>`<tr><td><span class="kind">${t[0]}</span> ${t[1]}</td><td class="r num">${t[2]}×</td></tr>`).join("")}</tbody></table></div></div></article>`).join("");
@@ -574,7 +578,8 @@ function renderAll(){
   $("#streaks").innerHTML=[["cama","Deitou até 22:00"],["hrv","HRV"],["banh","Banheiro sem celular"],["nota","Nota do dia"]].map(([f,l])=>{const s=streak(f);return `<div class="kpi"><span class="eyebrow">Sequência · ${l}</span><span class="v num">${s}<small>dia${s===1?"":"s"}</small></span></div>`;}).join("");
 
   // Foco: tarefas do Big 3 de hoje
-  const tb=(DIAS[key(t0)]?.big3||[]).filter(Boolean);
+  const hojeD=DIAS[key(t0)]||{};
+  const tb=[...(hojeD.big3||[]).filter(Boolean).map(t=>"💼 "+t),...(hojeD.big3P||[]).filter(Boolean).map(t=>"🏠 "+t)];
   $("#fTask").innerHTML=(tb.length?tb:["(registre o Big 3 de hoje)"]).map(t=>`<option>${t}</option>`).join("");
 }
 
@@ -586,6 +591,9 @@ function chart(title,better,pts,yMin,yMax,base,goal,fy,unit){
   [yMin,(yMin+yMax)/2,yMax].forEach(t=>{g+=`<line x1="${L}" x2="${W-R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${L-6}" y="${y(t)+4}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${fy(t)}</text>`;});
   g+=`<line x1="${L}" x2="${W-R}" y1="${y(base)}" y2="${y(base)}" stroke="var(--muted)" stroke-dasharray="4 4"/><line x1="${L}" x2="${W-R}" y1="${y(goal)}" y2="${y(goal)}" stroke="var(--good)" stroke-dasharray="4 4"/>`;
   if(valid.length>1){ const d=valid.map((p,k)=>`${k?"L":"M"}${x(p.i)},${y(p.v)}`).join(" "); g+=`<path d="${d} L${x(valid.at(-1).i)},${H-B} L${x(valid[0].i)},${H-B} Z" fill="var(--accent)" opacity=".12"/><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>`; }
+  const v2=pts.map((p,i)=>({v:p.v2,i})).filter(p=>p.v!=null);
+  if(v2.length>1) g+=`<path d="${v2.map((p,k)=>`${k?"L":"M"}${x(p.i)},${y(p.v)}`).join(" ")}" fill="none" stroke="var(--warn)" stroke-width="2" stroke-dasharray="5 4"/>`;
+  v2.forEach(p=>{ g+=`<circle cx="${x(p.i)}" cy="${y(p.v)}" r="3.5" fill="var(--surface)" stroke="var(--warn)" stroke-width="2"/>`; });
   valid.forEach((p,k)=>{const last=k===valid.length-1; g+=`<circle cx="${x(p.i)}" cy="${y(p.v)}" r="${last?5:3.5}" fill="${last?"var(--accent)":"var(--surface)"}" stroke="var(--accent)" stroke-width="2"/>`; if(last) g+=`<text x="${Math.min(x(p.i)+8,W-R-46)}" y="${y(p.v)-9}" font-size="11" font-weight="600" fill="var(--ink)" font-family="IBM Plex Mono,monospace">${fy(p.v)}${unit}</text>`;});
   const step=Math.ceil(pts.length/7); pts.forEach((p,i)=>{ if(i%step===0||i===pts.length-1) g+=`<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${p.l}</text>`;});
   g+=`</svg>`;
@@ -596,11 +604,19 @@ function chart(title,better,pts,yMin,yMax,base,goal,fy,unit){
 let formDirty=false;
 const NUMS=["hrvV","pos21","pegadas","social","tela"];
 const TIMEBOX=[["","⏱️ tempo"],["15","15 min"],["30","30 min"],["45","45 min"],["60","1h"],["90","1h30"],["120","2h"],["180","3h"]];
-$("#b3list").innerHTML=[1,2,3].map(i=>`<div class="b3row"><span class="no">${i}</span><input id="b${i}" type="text" placeholder="Prioridade ${i}: o que entregar" aria-label="Prioridade ${i}"><select id="bt${i}" aria-label="Tempo-limite da prioridade ${i}">${TIMEBOX.map(([v,l])=>`<option value="${v}">${l}</option>`).join("")}</select><button type="button" class="st" id="bs${i}" data-v="" aria-label="Status da prioridade ${i}">?</button></div>`).join("");
-function b3count(){ const c=[1,2,3].reduce((a,i)=>a+val($("#bs"+i).dataset.v),0); $("#b3count").textContent=String(c).replace(".",","); return c; }
-[1,2,3].forEach(i=>{
-  $("#bs"+i).addEventListener("click",e=>{ const b=e.currentTarget; const v=["","y","p","n"][(["","y","p","n"].indexOf(b.dataset.v)+1)%4]; b.dataset.v=v; b.textContent={"":"?",y:"✓",p:"~",n:"✗"}[v]; b3count(); formDirty=true; $("#saveMsg").textContent="Alterações não salvas"; });
-  $("#bt"+i).addEventListener("change",()=>{ formDirty=true; $("#saveMsg").textContent="Alterações não salvas"; });
+// Duas listas de Big 3: trabalho (campos big3*) e pessoal (campos big3P*)
+const LISTS=[
+  {p:"b",box:"#b3list",cnt:"#b3count",txt:"big3",min:"big3Min",st:"big3St",feitos:"big3Feitos",nome:"trabalho"},
+  {p:"q",box:"#b3listP",cnt:"#b3countP",txt:"big3P",min:"big3PMin",st:"big3PSt",feitos:"big3PFeitos",nome:"pessoal"},
+];
+const STSYM={"":"?",y:"✓",p:"~",n:"✗"};
+function b3count(L){ const c=[1,2,3].reduce((a,i)=>a+val($(`#${L.p}s${i}`).dataset.v),0); $(L.cnt).textContent=String(c).replace(".",","); return c; }
+LISTS.forEach(L=>{
+  $(L.box).innerHTML=[1,2,3].map(i=>`<div class="b3row"><span class="no">${i}</span><input id="${L.p}${i}" type="text" placeholder="Prioridade ${L.nome} ${i}: o que entregar" aria-label="Prioridade ${L.nome} ${i}"><select id="${L.p}t${i}" aria-label="Tempo-limite da prioridade ${L.nome} ${i}">${TIMEBOX.map(([v,l])=>`<option value="${v}">${l}</option>`).join("")}</select><button type="button" class="st" id="${L.p}s${i}" data-v="" aria-label="Status da prioridade ${L.nome} ${i}">?</button></div>`).join("");
+  [1,2,3].forEach(i=>{
+    $(`#${L.p}s${i}`).addEventListener("click",e=>{ const b=e.currentTarget; const v=["","y","p","n"][(["","y","p","n"].indexOf(b.dataset.v)+1)%4]; b.dataset.v=v; b.textContent=STSYM[v]; b3count(L); formDirty=true; $("#saveMsg").textContent="Alterações não salvas"; });
+    $(`#${L.p}t${i}`).addEventListener("change",()=>{ formDirty=true; $("#saveMsg").textContent="Alterações não salvas"; });
+  });
 });
 Object.entries(HAB).forEach(([g,list])=>{
   document.querySelector(`[data-group="${g}"]`).innerHTML=list.map(([f,l])=>`<button type="button" class="tg" data-f="${f}" data-v=""><span>${l}</span><span class="st">?</span></button>`).join("");
@@ -614,9 +630,11 @@ function loadForm(k){
   const d=DIAS[k]||{};
   document.querySelectorAll(".tg").forEach(b=>{ const v=d[b.dataset.f]||""; b.dataset.v=v; b.querySelector(".st").textContent=SYM[v]; });
   $("#cel1").value=d.cel1||""; NUMS.forEach(n=>$("#"+n).value=d[n]??"");
-  const b=d.big3||[], st=d.big3St||[], tm=d.big3Min||[];
-  [1,2,3].forEach(i=>{ $("#b"+i).value=b[i-1]||""; $("#bt"+i).value=tm[i-1]?String(tm[i-1]):""; const v=st[i-1]||""; $("#bs"+i).dataset.v=v; $("#bs"+i).textContent={"":"?",y:"✓",p:"~",n:"✗"}[v]; });
-  if(!st.length && typeof d.big3Feitos==="number") $("#b3count").textContent=String(d.big3Feitos).replace(".",","); else b3count();
+  LISTS.forEach(L=>{
+    const b=d[L.txt]||[], st=d[L.st]||[], tm=d[L.min]||[];
+    [1,2,3].forEach(i=>{ $(`#${L.p}${i}`).value=b[i-1]||""; $(`#${L.p}t${i}`).value=tm[i-1]?String(tm[i-1]):""; const v=st[i-1]||""; $(`#${L.p}s${i}`).dataset.v=v; $(`#${L.p}s${i}`).textContent=STSYM[v]; });
+    if(!st.some?.(Boolean) && typeof d[L.feitos]==="number") $(L.cnt).textContent=String(d[L.feitos]).replace(".",","); else b3count(L);
+  });
   $("#obs").value=d.obs||"";
   $("#saveMsg").textContent=DIAS[k]?`Registro de ${lbl(k)} carregado`:`Nenhum registro em ${lbl(k)}`;
 }
@@ -626,10 +644,12 @@ $("#dayForm").addEventListener("submit",async e=>{
   document.querySelectorAll(".tg").forEach(b=>data[b.dataset.f]=b.dataset.v||null);
   data.cel1=$("#cel1").value||null;
   NUMS.forEach(n=>{ const v=$("#"+n).value; data[n]=v===""?null:Number(v); });
-  data.big3=[1,2,3].map(i=>$("#b"+i).value.trim());
-  data.big3Min=[1,2,3].map(i=>$("#bt"+i).value?Number($("#bt"+i).value):null);
-  data.big3St=[1,2,3].map(i=>$("#bs"+i).dataset.v||null);
-  if(data.big3St.some(Boolean)) data.big3Feitos=b3count();
+  LISTS.forEach(L=>{
+    data[L.txt]=[1,2,3].map(i=>$(`#${L.p}${i}`).value.trim());
+    data[L.min]=[1,2,3].map(i=>$(`#${L.p}t${i}`).value?Number($(`#${L.p}t${i}`).value):null);
+    data[L.st]=[1,2,3].map(i=>$(`#${L.p}s${i}`).dataset.v||null);
+    if(data[L.st].some(Boolean)) data[L.feitos]=b3count(L);
+  });
   data.obs=$("#obs").value.trim()||null;
   $("#btnSave").disabled=true;
   try{ await setDoc(doc(db,"users",UID,"dias",k),data,{merge:true}); formDirty=false; const t=new Date(); $("#saveMsg").textContent=`Salvo às ${pad(t.getHours())}:${pad(t.getMinutes())}`; }
