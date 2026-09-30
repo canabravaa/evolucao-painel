@@ -103,6 +103,15 @@ nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:v
 .field{display:grid;gap:4px}
 .field label{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .field input,.field select,.field textarea{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);width:100%}
+.b3cards{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.b3cards > *{min-width:0}
+@media (max-width:760px){.b3cards{grid-template-columns:1fr}}
+.b3ol{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.b3ol li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:start;padding:8px 0;border-bottom:1px solid var(--line)}
+.b3ol li:last-child{border-bottom:0}
+.b3ol .mk{margin-top:1px}
+.b3ol .tb{font-family:var(--f-mono);font-size:.75rem;color:var(--muted);white-space:nowrap}
+.jump{margin-top:8px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .seg button{appearance:none;border:0;background:var(--surface);color:var(--muted);font:inherit;font-size:.85rem;padding:6px 10px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--paper)}
@@ -253,6 +262,13 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
       </div>
     </div>
     <div>
+      <div class="sec-head"><h2 id="b3Title">Big 3</h2><span class="eyebrow" id="b3Sub"></span></div>
+      <div class="b3cards">
+        <div class="log"><h3>💼 Trabalho</h3><ol class="b3ol" id="b3HojeT"></ol></div>
+        <div class="log"><h3>🏠 Pessoal</h3><ol class="b3ol" id="b3HojeP"></ol></div>
+      </div>
+    </div>
+    <div>
       <div class="sec-head"><h2>Indicadores</h2><span class="eyebrow" id="kpiNote"></span></div>
       <div class="kpis" id="kpis"></div>
     </div>
@@ -290,6 +306,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
       <div class="fgroup"><h3>💼 Trabalho · Big 3</h3><div class="toggles" data-group="trabalho"></div>
         <div class="b3list" id="b3list"></div>
         <p class="muted" style="font-size:.85rem">Concluídas: <b class="num" id="b3count">0</b> de 3 · toque no quadrado para marcar ✓ feita, ~ parcial ou ✗ não feita</p>
+        <p class="jump" id="b3jump" hidden><button type="button" class="btn" id="btnJump"></button></p>
         <p class="note" id="b3src" hidden>📋 Big 3 vindo da planilha <strong>Atividades FY26</strong> (coluna BIG 3 = SIM). Para trocar um item, altere a planilha. Aqui você marca o status e o tempo-limite.</p>
       </div>
       <div class="fgroup"><h3>🏠 Pessoal · Big 3</h3>
@@ -397,7 +414,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 30/09 · 20h50</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 30/09 · 21h00</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
@@ -604,6 +621,22 @@ function renderAll(){
   $("#htable").innerHTML=`<thead><tr><th>Hábito</th>${days.map(k=>`<th class="c">${lbl(k)}</th>`).join("")}</tr></thead><tbody>${ALLHAB.map(([f,l])=>`<tr><td>${l}</td>${days.map(k=>`<td class="c">${mk(DIAS[k]?.[f])}</td>`).join("")}</tr>`).join("")}</tbody>`;
   $("#streaks").innerHTML=[["cama","Deitou até 22:00"],["hrv","HRV"],["banh","Banheiro sem celular"],["nota","Nota do dia"]].map(([f,l])=>{const s=streak(f);return `<div class="kpi"><span class="eyebrow">Sequência · ${l}</span><span class="v num">${s}<small>dia${s===1?"":"s"}</small></span></div>`;}).join("");
 
+  // Big 3 em destaque: dia de referência (depois das 18h, amanhã — mesma regra da planilha)
+  const agora=new Date(), refD=new Date(t0.getTime()+(agora.getHours()>=18?DAY:0)), refK=key(refD), refDia=DIAS[refK]||{};
+  const ehAmanha = refK!==key(t0);
+  $("#b3Title").textContent = ehAmanha ? `Big 3 de amanhã · ${lbl(refK)}` : `Big 3 de hoje · ${lbl(refK)}`;
+  $("#b3Sub").textContent = refDia.big3Fonte==="planilha" ? "📋 da planilha Atividades FY26" : "";
+  const mkS=v=>v==="y"?`<span class="mk y">✓</span>`:v==="n"?`<span class="mk n">✗</span>`:v==="p"?`<span class="mk p">~</span>`:`<span class="mk u">·</span>`;
+  const tbL=m=>m?(m>=60?`${Math.floor(m/60)}h${m%60?pad(m%60):""}`:`${m} min`):"";
+  const b3li=(txt,st,mn)=>{ const it=(txt||[]).map((t,i)=>t?`<li>${mkS((st||[])[i])}<span>${t}</span><span class="tb">${tbL((mn||[])[i])}</span></li>`:"").join(""); return it||`<li><span></span><span class="muted">Nenhum item com SIM na planilha.</span><span></span></li>`; };
+  $("#b3HojeT").innerHTML=b3li(refDia.big3,refDia.big3St,refDia.big3Min);
+  $("#b3HojeP").innerHTML=b3li(refDia.big3P,refDia.big3PSt,refDia.big3PMin);
+  // Atalho na aba Registrar quando o Big 3 da planilha já está no dia seguinte
+  const selK=$("#fDate").value;
+  $("#b3jump").hidden = !(ehAmanha && selK!==refK && DIAS[refK]?.big3Fonte==="planilha");
+  $("#btnJump").textContent = `📋 Big 3 da planilha já está em ${lbl(refK)}: abrir esse dia`;
+  $("#btnJump").onclick = () => { $("#fDate").value=refK; formDirty=false; loadForm(refK); renderAll(); };
+
   // Foco: tarefas do Big 3 de hoje
   const hojeD=DIAS[key(t0)]||{};
   const tb=[...(hojeD.big3||[]).filter(Boolean).map(t=>"💼 "+t),...(hojeD.big3P||[]).filter(Boolean).map(t=>"🏠 "+t)];
@@ -681,7 +714,7 @@ const ORDER=["","y","n","p"], SYM={"":"?",y:"✓",n:"✗",p:"~"};
 document.querySelectorAll(".tg").forEach(b=>b.addEventListener("click",()=>{ const v=ORDER[(ORDER.indexOf(b.dataset.v)+1)%4]; b.dataset.v=v; b.querySelector(".st").textContent=SYM[v]; formDirty=true; $("#saveMsg").textContent="Alterações não salvas"; }));
 document.querySelectorAll("#dayForm input, #dayForm textarea").forEach(i=>{ if(i.id!=="fDate") i.addEventListener("input",()=>{formDirty=true;$("#saveMsg").textContent="Alterações não salvas";}); });
 $("#fDate").value=key(today0());
-$("#fDate").addEventListener("change",e=>{ formDirty=false; loadForm(e.target.value); });
+$("#fDate").addEventListener("change",e=>{ formDirty=false; loadForm(e.target.value); renderAll(); });
 function loadForm(k){
   const d=DIAS[k]||{};
   document.querySelectorAll(".tg").forEach(b=>{ const v=d[b.dataset.f]||""; b.dataset.v=v; b.querySelector(".st").textContent=SYM[v]; });
