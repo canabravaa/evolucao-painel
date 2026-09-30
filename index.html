@@ -290,6 +290,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
       <div class="fgroup"><h3>💼 Trabalho · Big 3</h3><div class="toggles" data-group="trabalho"></div>
         <div class="b3list" id="b3list"></div>
         <p class="muted" style="font-size:.85rem">Concluídas: <b class="num" id="b3count">0</b> de 3 · toque no quadrado para marcar ✓ feita, ~ parcial ou ✗ não feita</p>
+        <p class="note" id="b3src" hidden>📋 Big 3 vindo da planilha <strong>Atividades FY26</strong> (coluna BIG 3 = SIM). Para trocar um item, altere a planilha. Aqui você marca o status e o tempo-limite.</p>
       </div>
       <div class="fgroup"><h3>🏠 Pessoal · Big 3</h3>
         <div class="b3list" id="b3listP"></div>
@@ -396,7 +397,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 30/09 · 20h30</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 30/09 · 20h50</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
@@ -685,6 +686,7 @@ function loadForm(k){
   const d=DIAS[k]||{};
   document.querySelectorAll(".tg").forEach(b=>{ const v=d[b.dataset.f]||""; b.dataset.v=v; b.querySelector(".st").textContent=SYM[v]; });
   $("#cel1").value=d.cel1||""; NUMS.forEach(n=>$("#"+n).value=d[n]??"");
+  $("#b3src").hidden = d.big3Fonte!=="planilha";
   LISTS.forEach(L=>{
     const b=d[L.txt]||[], st=d[L.st]||[], tm=d[L.min]||[];
     [1,2,3].forEach(i=>{ $(`#${L.p}${i}`).value=b[i-1]||""; $(`#${L.p}t${i}`).value=tm[i-1]?String(tm[i-1]):""; const v=st[i-1]||""; $(`#${L.p}s${i}`).dataset.v=v; $(`#${L.p}s${i}`).textContent=STSYM[v]; });
