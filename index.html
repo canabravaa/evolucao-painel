@@ -103,6 +103,17 @@ nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:v
 .field{display:grid;gap:4px}
 .field label{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .field input,.field select,.field textarea{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);width:100%}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{appearance:none;border:0;background:var(--surface);color:var(--muted);font:inherit;font-size:.85rem;padding:6px 10px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--paper)}
+.kpis.five{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media (max-width:860px){.kpis.five{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.atv-bar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--line);margin-top:12px}
+.atv-bar i{display:block;height:100%}
+.atv-cols{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-top:14px}
+.atv-cols > *{min-width:0}
+@media (max-width:820px){.atv-cols{grid-template-columns:1fr}}
+.late{color:var(--crit);font-weight:600} .soon{color:var(--warn);font-weight:600}
 .b3list{display:grid;gap:10px}
 .b3row{display:grid;grid-template-columns:32px minmax(0,1fr) 92px 42px;gap:8px;align-items:center}
 .b3row .no{font-family:var(--f-display);font-weight:700;font-size:1.5rem;color:var(--accent);text-align:center}
@@ -244,6 +255,19 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     <div>
       <div class="sec-head"><h2>Indicadores</h2><span class="eyebrow" id="kpiNote"></span></div>
       <div class="kpis" id="kpis"></div>
+    </div>
+    <div>
+      <div class="sec-head"><h2>Atividades</h2>
+        <div class="seg" role="group" aria-label="Filtrar atividades">
+          <button type="button" data-a="Todas" aria-pressed="true">Todas</button><button type="button" data-a="Trabalho" aria-pressed="false">💼 Trabalho</button><button type="button" data-a="Pessoal" aria-pressed="false">🏠 Pessoal</button>
+        </div></div>
+      <div class="kpis" id="atvKpis"><div class="kpi"><span class="eyebrow">Atividades</span><span class="muted">Aguardando a primeira sincronização da planilha.</span></div></div>
+      <div class="atv-bar" id="atvBar" aria-hidden="true"></div>
+      <div class="atv-cols">
+        <div class="log"><h3>⏰ Atrasadas e próximas</h3><div class="tbl"><table><thead><tr><th>Prazo</th><th>Atividade</th><th>Resp.</th></tr></thead><tbody id="atvList"></tbody></table></div></div>
+        <div class="log"><h3>Evolução</h3><div id="atvChart"></div></div>
+      </div>
+      <p class="muted" style="font-size:.8rem;margin-top:6px" id="atvSync"></p>
     </div>
     <div>
       <div class="sec-head"><h2>Evolução</h2><span class="eyebrow">linha de base → meta</span></div>
@@ -432,7 +456,7 @@ const SEED = {
 const fb = initializeApp(firebaseConfig);
 const auth = getAuth(fb);
 const db = getFirestore(fb);
-let UID = null, DIAS = {}, FOCO = [], WHEEL = null;
+let UID = null, DIAS = {}, FOCO = [], WHEEL = null, ATV = null, ATVH = [], ATVF = "Todas";
 
 $("#btnLogin").addEventListener("click", async () => {
   const p = new GoogleAuthProvider(); p.setCustomParameters({ login_hint: OWNER_EMAIL });
@@ -460,6 +484,8 @@ onAuthStateChanged(auth, async user => {
     if (!formDirty) loadForm($("#fDate").value);
   }, e => { $("#sync").className = "sync err"; console.error(e); });
   onSnapshot(query(collection(db,"users",UID,"foco"), orderBy("quando","desc"), limit(10)), snap => { FOCO = snap.docs.map(d=>d.data()); drawLog(); });
+  onSnapshot(doc(db,"users",UID,"atividades","resumo"), s => { ATV = s.exists() ? s.data() : null; renderAtv(); });
+  onSnapshot(collection(db,"users",UID,"atividades_hist"), snap => { ATVH = snap.docs.map(d=>({k:d.id,...d.data()})).sort((a,b)=>a.k<b.k?-1:1); renderAtv(); });
   const w = await getDoc(doc(db,"users",UID,"roda","ciclo1"));
   WHEEL = w.exists() ? w.data() : { v:[5,8,5,6,5,5,7,3], ex:true };
   buildWheel();
@@ -598,6 +624,35 @@ function chart(title,better,pts,yMin,yMax,base,goal,fy,unit){
   const step=Math.ceil(pts.length/7); pts.forEach((p,i)=>{ if(i%step===0||i===pts.length-1) g+=`<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${p.l}</text>`;});
   g+=`</svg>`;
   return `<div class="chart"><div class="sec-head" style="margin:0"><h3>${title}</h3><span class="eyebrow">${better}</span></div>${g}<div class="lg"><span class="b">linha de base</span><span class="t">meta</span><span style="margin-left:auto">${valid.length} ${valid.length===1?"ponto":"pontos"}</span></div></div>`;
+}
+
+// ================= ATIVIDADES (resumo da planilha Atividades FY26) =================
+document.querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>{ ATVF=b.dataset.a; document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); renderAtv(); }));
+function renderAtv(){
+  if(!ATV) return;
+  const abas = ATVF==="Todas" ? ["Trabalho","Pessoal"] : [ATVF];
+  const s = k => abas.reduce((a,x)=>a+(ATV.abas[x]?.[k]||0),0);
+  const ab=s("abertas"), co=s("concluidas"), at=s("atrasadas"), vs=s("venceAteAmanha"), rp=s("reprogramadas"), tot=ab+co;
+  const pct = tot ? Math.round(co/tot*100) : 0;
+  $("#atvKpis").className="kpis five";
+  $("#atvKpis").innerHTML=[
+    ["Em aberto",ab,`${s("andamento")} em andamento · ${s("naoIniciado")} não iniciadas · ${s("aguardando")} aguardando`,"flat"],
+    ["Concluídas",co,`${pct}% do total`,co?"up":"flat"],
+    ["Atrasadas",at,at?"prazo vencido":"nenhuma vencida",at?"down":"up"],
+    ["Vencem até amanhã",vs,"hoje ou amanhã",vs?"down":"flat"],
+    ["Reprogramadas",rp,"prazo revisado para depois",rp?"down":"flat"],
+  ].map(([l,v,d,c])=>`<div class="kpi"><span class="eyebrow">${l}</span><span class="v num">${v}</span><span class="delta ${c}">${d}</span></div>`).join("");
+  $("#atvBar").innerHTML = tot ? `<i style="width:${co/tot*100}%;background:var(--good)" title="concluídas"></i><i style="width:${(ab-at)/tot*100}%;background:var(--accent);opacity:.45" title="em aberto no prazo"></i><i style="width:${at/tot*100}%;background:var(--crit)" title="atrasadas"></i>` : "";
+  const itens=[...(ATV.atrasadas||[]),...(ATV.proximas||[])].filter(x=>abas.includes(x.aba)).slice(0,8);
+  const quando=d=>d<0?`<span class="late">${-d}d atrasada</span>`:d===0?`<span class="soon">hoje</span>`:d===1?`<span class="soon">amanhã</span>`:`em ${d}d`;
+  $("#atvList").innerHTML = itens.length ? itens.map(x=>`<tr><td class="num" style="white-space:nowrap">${quando(x.dias)}<br><span class="kind">${x.prazo.slice(8,10)}/${x.prazo.slice(5,7)}</span></td><td>${x.big3?"⭐ ":""}${x.aba==="Pessoal"?"🏠":"💼"} ${x.desc}<br><span class="kind">${x.status}</span></td><td>${x.resp||""}</td></tr>`).join("") : `<tr><td colspan="3" class="muted">Nada vencido nem vencendo nos próximos 7 dias.</td></tr>`;
+  const pick = h => ATVF==="Todas" ? h : (ATVF==="Trabalho" ? h.trabalho : h.pessoal) || {};
+  const pts = ATVH.slice(-14).map(h=>({l:`${h.k.slice(8,10)}/${h.k.slice(5,7)}`, v:pick(h).abertas??null, v2:pick(h).concluidas??null}));
+  const mx = Math.max(10, ...pts.flatMap(p=>[p.v||0,p.v2||0]));
+  const base0 = pts.length ? pts[0].v : 0;
+  $("#atvChart").innerHTML = chart("Abertas × concluídas","linha cheia: abertas · tracejada: concluídas",pts,0,Math.ceil(mx/5)*5,base0??0,0,v=>Math.round(v),"").replace('<div class="chart">','<div>');
+  const up = ATV.atualizado?.toDate?.();
+  $("#atvSync").textContent = up ? `Planilha sincronizada em ${pad(up.getDate())}/${pad(up.getMonth()+1)} às ${pad(up.getHours())}:${pad(up.getMinutes())} · atrasadas contam pela data revisada (ou o prazo inicial, se não houver revisão).` : "";
 }
 
 // ================= REGISTRAR =================
