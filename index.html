@@ -103,6 +103,16 @@ nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:v
 .field{display:grid;gap:4px}
 .field label{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .field input,.field select,.field textarea{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);width:100%}
+.b3list{display:grid;gap:10px}
+.b3row{display:grid;grid-template-columns:32px minmax(0,1fr) 92px 42px;gap:8px;align-items:center}
+.b3row .no{font-family:var(--f-display);font-weight:700;font-size:1.5rem;color:var(--accent);text-align:center}
+.b3row input{font:inherit;padding:11px 12px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);width:100%;min-width:0}
+.b3row select{font:inherit;font-family:var(--f-mono);font-size:.85rem;padding:10px 6px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);width:100%}
+.b3row .st{appearance:none;font-family:var(--f-mono);font-weight:600;width:42px;height:42px;border-radius:6px;display:grid;place-items:center;border:1px dashed var(--line);background:var(--paper);color:var(--muted);cursor:pointer;font-size:1rem}
+.b3row .st[data-v="y"]{background:var(--good);color:var(--paper);border:0}
+.b3row .st[data-v="n"]{background:var(--crit);color:var(--paper);border:0}
+.b3row .st[data-v="p"]{background:var(--warn);color:var(--paper);border:0}
+@media (max-width:520px){.b3row{grid-template-columns:26px minmax(0,1fr) 42px}.b3row select{grid-column:2}}
 .savebar{position:sticky;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);display:flex;gap:10px;align-items:center;justify-content:flex-end;background:var(--paper);padding:8px 0}
 
 .block{overflow-x:auto;padding-bottom:4px}
@@ -254,12 +264,9 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
           <div class="field"><label for="hrvV">HRV (valor)</label><input type="number" id="hrvV" inputmode="decimal" step="0.1"></div>
         </div></div>
       <div class="fgroup"><h3>💼 Trabalho · Big 3</h3><div class="toggles" data-group="trabalho"></div>
-        <div class="fields">
-          <div class="field"><label for="b1">Prioridade 1</label><input id="b1" type="text"></div>
-          <div class="field"><label for="b2">Prioridade 2</label><input id="b2" type="text"></div>
-          <div class="field"><label for="b3">Prioridade 3</label><input id="b3" type="text"></div>
-          <div class="field"><label for="big3Feitos">Concluídas (0 a 3)</label><input id="big3Feitos" type="number" min="0" max="3" step="0.5" inputmode="decimal"></div>
-        </div></div>
+        <div class="b3list" id="b3list"></div>
+        <p class="muted" style="font-size:.85rem">Concluídas: <b class="num" id="b3count">0</b> de 3 · toque no quadrado para marcar ✓ feita, ~ parcial ou ✗ não feita</p>
+      </div>
       <div class="fgroup"><h3>🌙 Noite deste dia</h3><div class="toggles" data-group="noite"></div>
         <div class="fields">
           <div class="field"><label for="pos21">Tela depois das 21h (min)</label><input id="pos21" type="number" min="0" inputmode="numeric"></div>
@@ -587,7 +594,14 @@ function chart(title,better,pts,yMin,yMax,base,goal,fy,unit){
 
 // ================= REGISTRAR =================
 let formDirty=false;
-const NUMS=["hrvV","big3Feitos","pos21","pegadas","social","tela"];
+const NUMS=["hrvV","pos21","pegadas","social","tela"];
+const TIMEBOX=[["","⏱️ tempo"],["15","15 min"],["30","30 min"],["45","45 min"],["60","1h"],["90","1h30"],["120","2h"],["180","3h"]];
+$("#b3list").innerHTML=[1,2,3].map(i=>`<div class="b3row"><span class="no">${i}</span><input id="b${i}" type="text" placeholder="Prioridade ${i}: o que entregar" aria-label="Prioridade ${i}"><select id="bt${i}" aria-label="Tempo-limite da prioridade ${i}">${TIMEBOX.map(([v,l])=>`<option value="${v}">${l}</option>`).join("")}</select><button type="button" class="st" id="bs${i}" data-v="" aria-label="Status da prioridade ${i}">?</button></div>`).join("");
+function b3count(){ const c=[1,2,3].reduce((a,i)=>a+val($("#bs"+i).dataset.v),0); $("#b3count").textContent=String(c).replace(".",","); return c; }
+[1,2,3].forEach(i=>{
+  $("#bs"+i).addEventListener("click",e=>{ const b=e.currentTarget; const v=["","y","p","n"][(["","y","p","n"].indexOf(b.dataset.v)+1)%4]; b.dataset.v=v; b.textContent={"":"?",y:"✓",p:"~",n:"✗"}[v]; b3count(); formDirty=true; $("#saveMsg").textContent="Alterações não salvas"; });
+  $("#bt"+i).addEventListener("change",()=>{ formDirty=true; $("#saveMsg").textContent="Alterações não salvas"; });
+});
 Object.entries(HAB).forEach(([g,list])=>{
   document.querySelector(`[data-group="${g}"]`).innerHTML=list.map(([f,l])=>`<button type="button" class="tg" data-f="${f}" data-v=""><span>${l}</span><span class="st">?</span></button>`).join("");
 });
@@ -600,7 +614,10 @@ function loadForm(k){
   const d=DIAS[k]||{};
   document.querySelectorAll(".tg").forEach(b=>{ const v=d[b.dataset.f]||""; b.dataset.v=v; b.querySelector(".st").textContent=SYM[v]; });
   $("#cel1").value=d.cel1||""; NUMS.forEach(n=>$("#"+n).value=d[n]??"");
-  const b=d.big3||[]; $("#b1").value=b[0]||""; $("#b2").value=b[1]||""; $("#b3").value=b[2]||""; $("#obs").value=d.obs||"";
+  const b=d.big3||[], st=d.big3St||[], tm=d.big3Min||[];
+  [1,2,3].forEach(i=>{ $("#b"+i).value=b[i-1]||""; $("#bt"+i).value=tm[i-1]?String(tm[i-1]):""; const v=st[i-1]||""; $("#bs"+i).dataset.v=v; $("#bs"+i).textContent={"":"?",y:"✓",p:"~",n:"✗"}[v]; });
+  if(!st.length && typeof d.big3Feitos==="number") $("#b3count").textContent=String(d.big3Feitos).replace(".",","); else b3count();
+  $("#obs").value=d.obs||"";
   $("#saveMsg").textContent=DIAS[k]?`Registro de ${lbl(k)} carregado`:`Nenhum registro em ${lbl(k)}`;
 }
 $("#dayForm").addEventListener("submit",async e=>{
@@ -609,7 +626,10 @@ $("#dayForm").addEventListener("submit",async e=>{
   document.querySelectorAll(".tg").forEach(b=>data[b.dataset.f]=b.dataset.v||null);
   data.cel1=$("#cel1").value||null;
   NUMS.forEach(n=>{ const v=$("#"+n).value; data[n]=v===""?null:Number(v); });
-  data.big3=[$("#b1").value.trim(),$("#b2").value.trim(),$("#b3").value.trim()];
+  data.big3=[1,2,3].map(i=>$("#b"+i).value.trim());
+  data.big3Min=[1,2,3].map(i=>$("#bt"+i).value?Number($("#bt"+i).value):null);
+  data.big3St=[1,2,3].map(i=>$("#bs"+i).dataset.v||null);
+  if(data.big3St.some(Boolean)) data.big3Feitos=b3count();
   data.obs=$("#obs").value.trim()||null;
   $("#btnSave").disabled=true;
   try{ await setDoc(doc(db,"users",UID,"dias",k),data,{merge:true}); formDirty=false; const t=new Date(); $("#saveMsg").textContent=`Salvo às ${pad(t.getHours())}:${pad(t.getMinutes())}`; }
