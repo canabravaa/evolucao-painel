@@ -103,6 +103,18 @@ nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:v
 .field{display:grid;gap:4px}
 .field label{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .field input,.field select,.field textarea{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);width:100%}
+.nota-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.nota{font-family:var(--f-display);font-weight:700;line-height:.9;display:flex;align-items:baseline;gap:4px}
+.nota .num{font-family:var(--f-display);font-size:clamp(3.4rem,10vw,4.6rem)}
+.nota small{font-size:1.1rem;color:var(--muted)}
+.spark{width:130px;height:auto;flex:none}
+.nbars{display:grid;gap:5px;margin-top:6px}
+.nbar{display:grid;grid-template-columns:86px 1fr 52px;gap:8px;align-items:center;font-size:.8rem}
+.nbar .tr{height:8px;border-radius:4px;background:var(--line);overflow:hidden;position:relative}
+.nbar .tr i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:4px}
+.nbar .tr u{position:absolute;inset:0 auto 0 0;background:var(--accent);opacity:.18;border-radius:4px}
+.nbar .pt{font-family:var(--f-mono);font-size:.72rem;color:var(--muted);text-align:right}
+.nextline{font-size:.85rem;margin-top:6px;border-top:1px solid var(--line);padding-top:8px}
 .breakbox{width:100%;border-top:1px solid var(--line);padding-top:14px;display:flex;gap:16px;align-items:center;justify-content:center;flex-wrap:wrap}
 .btn.brk{font-size:1rem;padding:11px 20px}
 .btn.brk.on{background:var(--warn);border-color:var(--warn);color:var(--paper)}
@@ -250,12 +262,17 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
   <section class="panel" id="p-hoje">
     <div class="timers">
       <div class="tcard hero">
-        <span class="eyebrow">Próximo marco do dia</span>
-        <span class="what" id="nextWhat">—</span>
-        <span class="clock" id="nextClock">--:--:--</span>
-        <span class="muted num" id="nextAt" style="font-size:.85rem"></span>
+        <div class="nota-top">
+          <div>
+            <span class="eyebrow" id="notaLbl">Nota do dia</span>
+            <div class="nota"><span class="num" id="notaV">—</span><small>/100</small></div>
+            <span class="delta num" id="notaDelta"></span>
+          </div>
+          <svg class="spark" id="notaSpark" viewBox="0 0 120 44" aria-label="Nota dos últimos 7 dias"></svg>
+        </div>
+        <div class="nbars" id="notaBars"></div>
+        <div class="nextline"><span class="muted">Próximo:</span> <b id="nextWhat">—</b> <span class="num" id="nextAt"></span> · <span class="num" id="nextClock">--:--:--</span></div>
         <div class="daybar" aria-hidden="true"><span id="dayFill"></span><b id="dayNow"></b></div>
-        <div class="ticks"><span>04:50</span><span>09:00</span><span>13:00</span><span>17:45</span><span>22:00</span></div>
       </div>
       <div class="tcard">
         <span class="eyebrow">Até deitar (22:00)</span>
@@ -428,7 +445,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 01/10 · break</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 01/10 · nota do dia</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
@@ -532,6 +549,31 @@ const val = v => v==="y"?1:v==="p"?0.5:0;
 const toMin = s => { if(!s) return null; const [a,b]=s.split(":").map(Number); return a*60+b; };
 const hm = v => `${pad(Math.floor(v/60))}:${pad(Math.round(v%60))}`;
 const sortedKeys = () => Object.keys(DIAS).sort();
+// ================= NOTA DO DIA (critérios v0.1 — refinar) =================
+// 100 pontos em 4 blocos. ✓ vale o peso cheio, ~ vale metade, ✗ ou ? vale zero.
+// "Máximo possível" considera que o que ainda está como ? pode ser feito até o fim do dia.
+const NOTA = [
+  { g:"Manhã", itens:[["hrv",5],["banh",5],["med",5],["treino",7],["leit",3]] },
+  { g:"Execução", itens:[["big3Feitos",20,"b3"],["big3PFeitos",10,"b3"],["b3esc",5]] },
+  { g:"Foco e celular", itens:[["foco",5],["fech",5],["pegadas",2.5,"peg"],["social",2.5,"soc"]] },
+  { g:"Noite", itens:[["prep",5],["cel21",7],["chk",3],["cama",10]] },
+];
+function notaDia(d){
+  d = d || {}; let pts=0, max=0, pos=0; const grupos=[];
+  NOTA.forEach(G=>{
+    let gp=0, gm=0, gpos=0;
+    G.itens.forEach(([f,w,t])=>{
+      gm+=w; const v=d[f]; let e=0, aberto=false;
+      if(t==="b3"){ if(typeof v==="number") e=w*Math.min(3,v)/3; else aberto=true; }
+      else if(t==="peg"){ if(typeof v==="number") e=v<90?w:v<=110?w/2:0; else aberto=true; }
+      else if(t==="soc"){ if(typeof v==="number") e=v<=30?w:v<=45?w/2:0; else aberto=true; }
+      else { e=val(v)*w; aberto = v==null || v===""; }
+      gp+=e; gpos+= aberto ? w : e;
+    });
+    pts+=gp; max+=gm; pos+=gpos; grupos.push({g:G.g, pts:gp, max:gm, pos:gpos});
+  });
+  return { nota:Math.round(pts), possivel:Math.round(pos), grupos };
+}
 function curWeekOf(d){ return d < START ? 0 : Math.min(13, Math.floor((d-START)/DAY/7)+1); }
 
 // ================= ABAS =================
@@ -635,6 +677,21 @@ function renderAll(){
   const mk=v=>v==="y"?`<span class="mk y">✓</span>`:v==="n"?`<span class="mk n">✗</span>`:v==="p"?`<span class="mk p">~</span>`:`<span class="mk u">?</span>`;
   $("#htable").innerHTML=`<thead><tr><th>Hábito</th>${days.map(k=>`<th class="c">${lbl(k)}</th>`).join("")}</tr></thead><tbody>${ALLHAB.map(([f,l])=>`<tr><td>${l}</td>${days.map(k=>`<td class="c">${mk(DIAS[k]?.[f])}</td>`).join("")}</tr>`).join("")}</tbody>`;
   $("#streaks").innerHTML=[["cama","Deitou até 22:00"],["hrv","HRV"],["banh","Banheiro sem celular"],["nota","Nota do dia"]].map(([f,l])=>{const s=streak(f);return `<div class="kpi"><span class="eyebrow">Sequência · ${l}</span><span class="v num">${s}<small>dia${s===1?"":"s"}</small></span></div>`;}).join("");
+
+  // Nota do dia (card principal)
+  const kHoje=key(t0), nh=notaDia(DIAS[kHoje]);
+  const kOntem=key(new Date(t0.getTime()-DAY)), no=DIAS[kOntem]?notaDia(DIAS[kOntem]):null;
+  $("#notaV").textContent = DIAS[kHoje] ? nh.nota : "—";
+  $("#notaLbl").textContent = `Nota do dia · ${lbl(kHoje)} · em andamento`;
+  const dlt = no ? nh.nota-no.nota : null;
+  $("#notaDelta").innerHTML = `${dlt!=null?`<span class="${dlt>=0?"up":"down"}">${dlt>=0?"▲ +":"▼ "}${Math.abs(dlt)} vs. ontem (${no.nota})</span> · `:""}<span class="muted">máximo ainda possível: ${nh.possivel}</span>`;
+  $("#notaBars").innerHTML = nh.grupos.map(g=>`<div class="nbar"><span>${g.g}</span><span class="tr"><u style="width:${g.pos/g.max*100}%"></u><i style="width:${g.pts/g.max*100}%"></i></span><span class="pt">${String(Math.round(g.pts*10)/10).replace(".",",")}/${g.max}</span></div>`).join("");
+  const sp=[]; for(let i=6;i>=0;i--){ const k=key(new Date(t0.getTime()-i*DAY)); sp.push(DIAS[k]?notaDia(DIAS[k]).nota:null); }
+  const sx=i=>4+i*(112/6), sy=v=>40-v*0.36, spv=sp.map((v,i)=>({v,i})).filter(p=>p.v!=null);
+  $("#notaSpark").innerHTML = `<line x1="4" x2="116" y1="${sy(70)}" y2="${sy(70)}" stroke="var(--good)" stroke-dasharray="3 3"/>`+
+    (spv.length>1?`<path d="${spv.map((p,k)=>`${k?"L":"M"}${sx(p.i)},${sy(p.v)}`).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="2"/>`:"")+
+    spv.map((p,k)=>`<circle cx="${sx(p.i)}" cy="${sy(p.v)}" r="${k===spv.length-1?3.5:2.5}" fill="var(--accent)"/>`).join("")+
+    `<text x="116" y="${sy(70)-3}" text-anchor="end" font-size="8" fill="var(--muted)" font-family="IBM Plex Mono,monospace">meta 70</text>`;
 
   // Big 3 em destaque: dia de referência (depois das 18h, amanhã — mesma regra da planilha)
   const agora=new Date(), refD=new Date(t0.getTime()+(agora.getHours()>=18?DAY:0)), refK=key(refD), refDia=DIAS[refK]||{};
@@ -756,6 +813,7 @@ $("#dayForm").addEventListener("submit",async e=>{
     if(data[L.st].some(Boolean)) data[L.feitos]=b3count(L);
   });
   data.obs=$("#obs").value.trim()||null;
+  data.nota=notaDia({...(DIAS[k]||{}),...data}).nota;
   $("#btnSave").disabled=true;
   try{ await setDoc(doc(db,"users",UID,"dias",k),data,{merge:true}); formDirty=false; const t=new Date(); $("#saveMsg").textContent=`Salvo às ${pad(t.getHours())}:${pad(t.getMinutes())}`; }
   catch(err){ $("#saveMsg").textContent="Não salvou: "+err.code+". Verifique a conexão e tente de novo."; }
