@@ -114,6 +114,14 @@ nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:v
 .nbar .tr i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:4px}
 .nbar .tr u{position:absolute;inset:0 auto 0 0;background:var(--accent);opacity:.18;border-radius:4px}
 .nbar .pt{font-family:var(--f-mono);font-size:.72rem;color:var(--muted);text-align:right}
+#notaDelta{font-family:var(--f-mono);font-size:.78rem;display:block;margin-top:4px;line-height:1.4}
+#notaLbl{display:block}
+.stack{display:grid;gap:14px;align-content:start;min-width:0}
+.gain{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.gain li button{appearance:none;width:100%;display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:8px;align-items:center;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:7px 0;color:var(--ink);font:inherit;font-size:.88rem;cursor:pointer}
+.gain li:last-child button{border-bottom:0}
+.gain .pts{font-family:var(--f-mono);font-weight:600;color:var(--good);font-size:.85rem}
+.gain .hr{font-family:var(--f-mono);font-size:.72rem;color:var(--muted);white-space:nowrap}
 .nextline{font-size:.85rem;margin-top:6px;border-top:1px solid var(--line);padding-top:8px}
 .breakbox{width:100%;border-top:1px solid var(--line);padding-top:14px;display:flex;gap:16px;align-items:center;justify-content:center;flex-wrap:wrap}
 .btn.brk{font-size:1rem;padding:11px 20px}
@@ -274,10 +282,17 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
         <div class="nextline"><span class="muted">Próximo:</span> <b id="nextWhat">—</b> <span class="num" id="nextAt"></span> · <span class="num" id="nextClock">--:--:--</span></div>
         <div class="daybar" aria-hidden="true"><span id="dayFill"></span><b id="dayNow"></b></div>
       </div>
+      <div class="stack">
       <div class="tcard">
         <span class="eyebrow">Até deitar (22:00)</span>
         <span class="clock" id="bedClock">--:--</span>
-        <span class="muted" style="font-size:.9rem">Celular fora do quarto às 21:00</span>
+        <span class="muted" style="font-size:.85rem">Celular fora do quarto às 21:00</span>
+      </div>
+      <div class="tcard">
+        <span class="eyebrow">Para subir a nota hoje</span>
+        <ul class="gain" id="gainList"></ul>
+        <span class="muted" style="font-size:.75rem">Toque num item para registrar.</span>
+      </div>
       </div>
       <div class="tcard">
         <span class="eyebrow">Fim do ciclo · 20/12</span>
@@ -445,7 +460,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 01/10 · nota do dia</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 01/10 · ações da nota</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
@@ -574,6 +589,7 @@ function notaDia(d){
   });
   return { nota:Math.round(pts), possivel:Math.round(pos), grupos };
 }
+const agoraH = () => { const n=new Date(); return n.getHours()+n.getMinutes()/60; };
 function curWeekOf(d){ return d < START ? 0 : Math.min(13, Math.floor((d-START)/DAY/7)+1); }
 
 // ================= ABAS =================
@@ -692,6 +708,24 @@ function renderAll(){
     (spv.length>1?`<path d="${spv.map((p,k)=>`${k?"L":"M"}${sx(p.i)},${sy(p.v)}`).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="2"/>`:"")+
     spv.map((p,k)=>`<circle cx="${sx(p.i)}" cy="${sy(p.v)}" r="${k===spv.length-1?3.5:2.5}" fill="var(--accent)"/>`).join("")+
     `<text x="116" y="${sy(70)-3}" text-anchor="end" font-size="8" fill="var(--muted)" font-family="IBM Plex Mono,monospace">meta 70</text>`;
+
+  // Ações que ainda aumentam a nota hoje (maior ganho primeiro; manhã sai da lista depois das 12h)
+  const GLBL={hrv:"Medir o HRV",banh:"Banheiro sem celular",med:"Meditação",treino:"Treino",leit:"Leitura",b3esc:"Big 3 escrito",foco:"Bloco de foco sem celular",fech:"Fechamento do dia",prep:"Preparação da véspera",cel21:"Celular fora do quarto",chk:"Checkpoint do sono",cama:"Deitar até 22:00",big3Feitos:"Concluir o Big 3 de trabalho",big3PFeitos:"Concluir o Big 3 pessoal",pegadas:"Ficar abaixo de 90 pegadas",social:"X + Instagram ≤ 30 min"};
+  const GHORA={fech:"17:45",prep:"20:30",cel21:"21:00",chk:"21:45",cama:"22:00",b3esc:"09:15"};
+  const MANHA=["hrv","banh","med","leit"], hAgora=agoraH(), dH=DIAS[kHoje]||{};
+  const ganhos=[];
+  NOTA.forEach(G=>G.itens.forEach(([f,w,t])=>{
+    const v=dH[f]; let g=0;
+    if(t==="b3"){ const feitos=typeof v==="number"?Math.min(3,v):0; g=w*(3-feitos)/3; }
+    else if(t==="peg"||t==="soc"){ if(typeof v!=="number") g=w; }
+    else if(v==null||v===""){ g=w; } else if(v==="p"){ g=w/2; }
+    if(MANHA.includes(f) && hAgora>=12) g=0;
+    if(f==="b3esc" && hAgora*60>555 && (v==null||v==="")) g=0;
+    if(g>0.01) ganhos.push({f,g,l:GLBL[f]||f,h:GHORA[f]||""});
+  }));
+  ganhos.sort((a,b)=>b.g-a.g);
+  $("#gainList").innerHTML = ganhos.length ? ganhos.slice(0,6).map(x=>`<li><button type="button" data-go="registrar"><span class="pts">+${String(Math.round(x.g*10)/10).replace(".",",")}</span><span>${x.l}</span><span class="hr">${x.h}</span></button></li>`).join("") : `<li class="muted" style="font-size:.88rem">Nada pendente: dia completo. 🎉</li>`;
+  document.querySelectorAll("#gainList [data-go]").forEach(b=>b.onclick=()=>show("registrar"));
 
   // Big 3 em destaque: dia de referência (depois das 18h, amanhã — mesma regra da planilha)
   const agora=new Date(), refD=new Date(t0.getTime()+(agora.getHours()>=18?DAY:0)), refK=key(refD), refDia=DIAS[refK]||{};
