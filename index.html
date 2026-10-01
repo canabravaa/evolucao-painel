@@ -103,6 +103,13 @@ nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:v
 .field{display:grid;gap:4px}
 .field label{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .field input,.field select,.field textarea{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);width:100%}
+.breakbox{width:100%;border-top:1px solid var(--line);padding-top:14px;display:flex;gap:16px;align-items:center;justify-content:center;flex-wrap:wrap}
+.btn.brk{font-size:1rem;padding:11px 20px}
+.btn.brk.on{background:var(--warn);border-color:var(--warn);color:var(--paper)}
+.brkstats{display:flex;gap:22px}
+.brkstats div{display:grid}
+.brkstats .v{font-family:var(--f-display);font-weight:700;font-size:1.8rem;line-height:1}
+.brkstats .v small{font-size:.5em;color:var(--muted);margin-left:2px}
 .b3cards{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .b3cards > *{min-width:0}
 @media (max-width:760px){.b3cards{grid-template-columns:1fr}}
@@ -345,6 +352,13 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
           <button class="btn" data-m="15">15</button><button class="btn sel" data-m="25">25</button><button class="btn" data-m="50">50</button><button class="btn" data-m="90">90</button><button class="btn" data-m="120">120</button>
         </div>
         <div class="row"><button class="btn primary" id="fStart">Iniciar</button><button class="btn" id="fStop">Concluir</button><button class="btn" id="fReset">Zerar</button></div>
+        <div class="breakbox">
+          <button class="btn brk" id="btnBreak" type="button">☕ Break</button>
+          <div class="brkstats">
+            <div><span class="eyebrow">Breaks hoje</span><span class="v num" id="brkN">0</span></div>
+            <div><span class="eyebrow">Total em break</span><span class="v num" id="brkMin">0<small>min</small></span></div>
+          </div>
+        </div>
       </div>
       <div class="log">
         <div class="field"><label for="fTask">Tarefa (Big 3 de hoje)</label><select id="fTask"></select></div>
@@ -414,13 +428,13 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 30/09 · 21h00</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 01/10 · break</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc, query, orderBy, limit, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, onSnapshot, addDoc, query, orderBy, limit, where, increment, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, OWNER_EMAIL } from "./firebase-config.js";
 
 const $ = s => document.querySelector(s);
@@ -474,7 +488,7 @@ const SEED = {
 const fb = initializeApp(firebaseConfig);
 const auth = getAuth(fb);
 const db = getFirestore(fb);
-let UID = null, DIAS = {}, FOCO = [], WHEEL = null, ATV = null, ATVH = [], ATVF = "Todas";
+let UID = null, DIAS = {}, FOCO = [], WHEEL = null, ATV = null, ATVH = [], ATVF = "Todas", BRK = [];
 
 $("#btnLogin").addEventListener("click", async () => {
   const p = new GoogleAuthProvider(); p.setCustomParameters({ login_hint: OWNER_EMAIL });
@@ -502,6 +516,7 @@ onAuthStateChanged(auth, async user => {
     if (!formDirty) loadForm($("#fDate").value);
   }, e => { $("#sync").className = "sync err"; console.error(e); });
   onSnapshot(query(collection(db,"users",UID,"foco"), orderBy("quando","desc"), limit(10)), snap => { FOCO = snap.docs.map(d=>d.data()); drawLog(); });
+  onSnapshot(query(collection(db,"users",UID,"breaks"), where("dia","==",key(today0()))), snap => { BRK = snap.docs.map(d=>({id:d.id,...d.data()})); renderBreak(); });
   onSnapshot(doc(db,"users",UID,"atividades","resumo"), s => { ATV = s.exists() ? s.data() : null; renderAtv(); });
   onSnapshot(collection(db,"users",UID,"atividades_hist"), snap => { ATVH = snap.docs.map(d=>({k:d.id,...d.data()})).sort((a,b)=>a.k<b.k?-1:1); renderAtv(); });
   const w = await getDoc(doc(db,"users",UID,"roda","ciclo1"));
@@ -763,6 +778,38 @@ $("#fStop").addEventListener("click",async()=>{ const ms=accMs+(startAt?Date.now
 $("#fReset").addEventListener("click",()=>{startAt=null;accMs=0;clearInterval(timerId);$("#fStart").textContent="Iniciar";$("#fLabel").textContent="Pronto para começar";renderT();});
 function drawLog(){ $("#fLog").innerHTML=FOCO.length?FOCO.map(x=>{const d=x.quando?.toDate?.(); return `<tr><td class="num">${d?`${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`:"agora"}</td><td>${x.tarefa}</td><td class="r num">${x.previsto} min</td><td class="r num" style="color:${x.real>x.previsto?"var(--crit)":"var(--good)"}">${x.real} min</td></tr>`;}).join(""):`<tr><td colspan="4" class="muted">Nenhuma sessão ainda. Conclua um bloco para registrar.</td></tr>`; }
 renderT();
+
+// ================= BREAK =================
+// Cada break é um documento em users/{uid}/breaks (dia, inicioMs, fimMs, min). Um break aberto fica com fimMs nulo,
+// então continua contando mesmo se a página for fechada ou aberta em outro aparelho.
+const brkAberto = () => BRK.find(b => !b.fimMs);
+function renderBreak(){
+  const ab = brkAberto(), agora = Date.now();
+  const fechados = BRK.filter(b => b.fimMs);
+  const minFech = fechados.reduce((a,b)=>a+(b.min||0),0);
+  const minAb = ab ? (agora-ab.inicioMs)/6e4 : 0;
+  $("#brkN").textContent = BRK.length;
+  $("#brkMin").innerHTML = `${Math.round(minFech+minAb)}<small>min</small>`;
+  const btn = $("#btnBreak");
+  if (ab) { const s=Math.floor((agora-ab.inicioMs)/1000); btn.classList.add("on"); btn.textContent = `Encerrar break · ${pad(Math.floor(s/60))}:${pad(s%60)}`; }
+  else { btn.classList.remove("on"); btn.textContent = "☕ Break"; }
+}
+setInterval(() => { if (brkAberto()) renderBreak(); }, 1000);
+$("#btnBreak").addEventListener("click", async () => {
+  if (!UID) return;
+  const ab = brkAberto();
+  try {
+    if (ab) {
+      const fim = Date.now(), min = Math.max(1, Math.round((fim-ab.inicioMs)/6e4));
+      await updateDoc(doc(db,"users",UID,"breaks",ab.id), { fimMs: fim, min });
+      await setDoc(doc(db,"users",UID,"dias",ab.dia), { breaksN: increment(1), breaksMin: increment(min) }, { merge: true });
+    } else {
+      // pausa o timer de foco, se estiver rodando
+      if (startAt) { accMs += Date.now()-startAt; startAt=null; clearInterval(timerId); $("#fStart").textContent="Retomar"; $("#fLabel").textContent="Em break"; renderT(); }
+      await addDoc(collection(db,"users",UID,"breaks"), { dia: key(today0()), inicioMs: Date.now(), fimMs: null, min: null, criado: serverTimestamp() });
+    }
+  } catch (e) { $("#fLabel").textContent = "Break não registrado: " + e.code; }
+});
 
 // ================= MÉTODOS + RODA DA VIDA =================
 $("#methods").innerHTML=METHODS.map(([n,s,h,w])=>`<div class="m"><div class="goal-top"><h3>${n}</h3><span class="pill ${s==="on"?"on":"warn"}">${s==="on"?"em uso":"próximo"}</span></div><p>${h}</p><span class="where">→ ${w}</span></div>`).join("");
