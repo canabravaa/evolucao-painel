@@ -139,6 +139,18 @@ nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:v
 .b3ol .mk{margin-top:1px}
 .b3ol .tb{font-family:var(--f-mono);font-size:.75rem;color:var(--muted);white-space:nowrap}
 .jump{margin-top:8px}
+.prjgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.prj{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:grid;gap:8px;align-content:start}
+.prj.parado{border-color:var(--crit)}
+.prj .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.prj h3{font-size:1.15rem}
+.prj .res{font-size:.85rem;color:var(--muted)}
+.prj .pbar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;display:flex}
+.prj .pbar i{display:block;height:100%}
+.prj .chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--f-mono);font-size:.68rem;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.good{color:var(--good);border-color:var(--good)} .chip.crit{color:var(--crit);border-color:var(--crit)} .chip.warn{color:var(--warn);border-color:var(--warn)}
+.prj .nx{font-size:.85rem;border-top:1px solid var(--line);padding-top:8px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .seg button{appearance:none;border:0;background:var(--surface);color:var(--muted);font:inherit;font-size:.85rem;padding:6px 10px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--paper)}
@@ -325,6 +337,11 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
       <p class="muted" style="font-size:.8rem;margin-top:6px" id="atvSync"></p>
     </div>
     <div>
+      <div class="sec-head"><h2>Projetos</h2><span class="eyebrow" id="prjWip"></span></div>
+      <div class="prjgrid" id="prjGrid"><div class="kpi"><span class="muted">Aguardando a sincronização da aba Projetos da planilha.</span></div></div>
+      <div class="log" id="prjOrfas" hidden style="margin-top:14px"><h3>🔎 Ações abertas há mais de 14 dias sem projeto</h3><p class="muted" style="font-size:.85rem">Ou viram projeto (com resultado esperado), ou são quebradas numa próxima ação concreta.</p><div class="tbl"><table><tbody id="prjOrfasList"></tbody></table></div></div>
+    </div>
+    <div>
       <div class="sec-head"><h2>Evolução</h2><span class="eyebrow">linha de base → meta</span></div>
       <div class="charts" id="charts"></div>
     </div>
@@ -460,7 +477,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 01/10 · ações da nota</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 01/10 · projetos</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
@@ -502,6 +519,8 @@ const METHODS = [
   ["Tiny Habits · versão mínima","on","Dia ruim vira dia reduzido, nunca dia perdido.","Evento 04:50"],
   ["Intenções de implementação","on","\"Se for 21:00, então celular fora do quarto.\" Os gatilhos estão na agenda.","Google Calendar"],
   ["WOOP","on","Aplicado ao sono: desejo, resultado, obstáculo e plano.","Abaixo"],
+  ["GTD · projetos × próximas ações","on","Projeto = resultado que exige mais de uma ação. Cada linha da planilha é uma próxima ação concreta (verbo + entrega). Projeto sem próxima ação é alerta.","Aba Projetos da planilha · seção Projetos"],
+  ["Kanban · limite de WIP","on","No máximo 5 projetos ativos ao mesmo tempo. Projeto parado há 7 dias sem ação concluída fica em vermelho.","Seção Projetos"],
   ["Matriz de Eisenhower","next","Classificar a lista de pendências em fazer, agendar, agrupar ou eliminar.","Revisão das pendências"],
   ["Roda da Vida","next","Nota de 0 a 10 por pilar no início e no fim do ciclo.","Abaixo"],
   ["PARA · Tiago Forte","on","O vault organizado em projetos, áreas, recursos e arquivo.","Obsidian"],
@@ -791,6 +810,35 @@ function renderAtv(){
   const mx = Math.max(10, ...pts.flatMap(p=>[p.v||0,p.v2||0]));
   const base0 = pts.length ? pts[0].v : 0;
   $("#atvChart").innerHTML = chart("Abertas × concluídas","linha cheia: abertas · tracejada: concluídas",pts,0,Math.ceil(mx/5)*5,base0??0,0,v=>Math.round(v),"").replace('<div class="chart">','<div>');
+  // ---- Projetos: avanço medido pelas ações concluídas
+  const PJ=(ATV.projetos||[]).filter(p=>abas.includes(p.area) && p.status!=="Concluído");
+  const ativos=(ATV.projetos||[]).filter(p=>p.status==="Ativo").length, sug=(ATV.projetos||[]).filter(p=>p.status==="Sugerido").length;
+  $("#prjWip").innerHTML = `ativos <b class="num" style="color:${ativos>5?"var(--crit)":"inherit"}">${ativos}</b> / limite 5${sug?` · ${sug} sugeridos para confirmar na planilha`:""}`;
+  const ordem={Ativo:0,Sugerido:1,"Sem cadastro":2,Pausado:3};
+  PJ.sort((a,b)=>(ordem[a.status]??9)-(ordem[b.status]??9) || b.diasSemAvanco-a.diasSemAvanco);
+  const dataBR=k=>k?`${k.slice(8,10)}/${k.slice(5,7)}`:"";
+  $("#prjGrid").innerHTML = PJ.length ? PJ.map(p=>{
+    const parado = p.status==="Ativo" && p.diasSemAvanco>=7;
+    const semProx = p.abertas===0 && p.status!=="Pausado";
+    const pc = p.total? p.concluidas/p.total*100 : 0, pa = p.total? p.atrasadas/p.total*100 : 0;
+    const st = p.status==="Ativo"?"on":p.status==="Pausado"?"base":"warn";
+    return `<div class="prj${parado?" parado":""}">
+      <div class="top"><h3>${p.area==="Pessoal"?"🏠":"💼"} ${p.nome}</h3><span class="pill ${st}">${p.status.toLowerCase()}</span></div>
+      ${p.resultado?`<p class="res">✅ ${p.resultado}</p>`:`<p class="res" style="color:var(--warn)">Defina o resultado esperado na aba Projetos.</p>`}
+      <div class="pbar" title="${p.concluidas} de ${p.total} ações concluídas"><i style="width:${pc}%;background:var(--good)"></i><i style="width:${pa}%;background:var(--crit)"></i></div>
+      <div class="chips">
+        <span class="chip">${p.concluidas}/${p.total} ações</span>
+        ${p.semana?`<span class="chip good">+${p.semana} na semana</span>`:""}
+        ${p.atrasadas?`<span class="chip crit">${p.atrasadas} atrasada${p.atrasadas>1?"s":""}</span>`:""}
+        <span class="chip ${parado?"crit":p.diasSemAvanco>=4?"warn":""}">${p.ultimoAvanco?`último avanço ${dataBR(p.ultimoAvanco)} · `:""}${p.diasSemAvanco}d sem avanço</span>
+        ${p.big3?`<span class="chip good">⭐ no Big 3</span>`:""}
+      </div>
+      <div class="nx">${semProx?`<span style="color:var(--crit)">⚠️ Sem próxima ação: crie uma na planilha (verbo + entrega).</span>`:p.proxima?`<span class="muted">Próxima ação:</span> ${p.proxima.desc}${p.proxima.prazo?` <span class="kind">· ${dataBR(p.proxima.prazo)}</span>`:""}`:""}</div>
+    </div>`;}).join("") : `<div class="kpi"><span class="muted">Nenhum projeto nesta visão.</span></div>`;
+  const orf=(ATV.semProjeto||[]).filter(x=>abas.includes(x.aba));
+  $("#prjOrfas").hidden = !orf.length;
+  $("#prjOrfasList").innerHTML = orf.map(x=>`<tr><td class="num" style="white-space:nowrap"><span class="late">${x.idade}d</span></td><td>${x.aba==="Pessoal"?"🏠":"💼"} ${x.desc}<br><span class="kind">${x.status}</span></td></tr>`).join("");
+
   const up = ATV.atualizado?.toDate?.();
   $("#atvSync").textContent = up ? `Planilha sincronizada em ${pad(up.getDate())}/${pad(up.getMonth()+1)} às ${pad(up.getHours())}:${pad(up.getMinutes())} · atrasadas contam pela data revisada (ou o prazo inicial, se não houver revisão).` : "";
 }
