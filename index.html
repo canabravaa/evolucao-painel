@@ -151,6 +151,13 @@ nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:v
 .chip{font-family:var(--f-mono);font-size:.68rem;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
 .chip.good{color:var(--good);border-color:var(--good)} .chip.crit{color:var(--crit);border-color:var(--crit)} .chip.warn{color:var(--warn);border-color:var(--warn)}
 .prj .nx{font-size:.85rem;border-top:1px solid var(--line);padding-top:8px}
+.prj .acoes{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:.84rem;border-top:1px solid var(--line);padding-top:8px}
+.prj .acoes li{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:8px;align-items:start}
+.prj .acoes li.done{color:var(--muted);text-decoration:line-through}
+.prj .acoes .mk{width:18px;height:18px;font-size:.7rem}
+.prjrow{display:grid;grid-template-columns:minmax(0,1fr) 120px auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:.9rem}
+.prjrow:last-child{border-bottom:0}
+@media (max-width:600px){.prjrow{grid-template-columns:minmax(0,1fr) 80px}.prjrow .chips{grid-column:1/-1}}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .seg button{appearance:none;border:0;background:var(--surface);color:var(--muted);font:inherit;font-size:.85rem;padding:6px 10px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--paper)}
@@ -271,6 +278,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
 
   <nav class="tabs" aria-label="Seções"><div class="tabs-in" role="tablist" id="tablist">
     <button role="tab" data-t="hoje" aria-selected="true">Hoje</button>
+    <button role="tab" data-t="projetos" aria-selected="false">Projetos</button>
     <button role="tab" data-t="registrar" aria-selected="false">Registrar</button>
     <button role="tab" data-t="foco" aria-selected="false">Foco</button>
     <button role="tab" data-t="ciclo" aria-selected="false">Ciclo</button>
@@ -345,6 +353,20 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
       <div class="sec-head"><h2>Evolução</h2><span class="eyebrow">linha de base → meta</span></div>
       <div class="charts" id="charts"></div>
     </div>
+  </section>
+
+  <!-- PROJETOS -->
+  <section class="panel" id="p-projetos" hidden>
+    <div class="sec-head"><h2>Projetos</h2><span class="eyebrow">GTD · avanço = ações concluídas · limite de 5 ativos</span></div>
+    <div class="kpis five" id="pjKpis"></div>
+    <div class="atv-cols">
+      <div class="log"><h3>Ritmo: ações concluídas por dia</h3><div id="pjChart"></div><p class="muted" style="font-size:.78rem">A contagem começou em 01/10: o histórico anterior não tem data de conclusão.</p></div>
+      <div class="log"><h3>⚠️ Precisa de decisão</h3><ul class="gain" id="pjAlertas"></ul></div>
+    </div>
+    <div><h3 style="margin-bottom:10px">💼 Trabalho</h3><div class="prjgrid" id="pjTrab"></div></div>
+    <div><h3 style="margin-bottom:10px">🏠 Pessoal</h3><div class="prjgrid" id="pjPess"></div></div>
+    <div class="log" id="pjOrfas" hidden><h3>🔎 Ações abertas há mais de 14 dias sem projeto</h3><p class="muted" style="font-size:.85rem">Ou viram projeto (com resultado esperado), ou são reescritas como uma próxima ação concreta.</p><div class="tbl"><table><tbody id="pjOrfasList"></tbody></table></div></div>
+    <p class="note">Regras: cada linha da planilha é uma próxima ação (verbo + entrega, fecha em até 1 dia). 7 dias sem ação concluída = projeto parado. Projeto ativo sem ação aberta = defina a próxima ação. Detalhes no Obsidian: Projetos - Regras.</p>
   </section>
 
   <!-- REGISTRAR -->
@@ -477,7 +499,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 01/10 · projetos</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 01/10 · aba projetos</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
@@ -539,7 +561,7 @@ const SEED = {
 const fb = initializeApp(firebaseConfig);
 const auth = getAuth(fb);
 const db = getFirestore(fb);
-let UID = null, DIAS = {}, FOCO = [], WHEEL = null, ATV = null, ATVH = [], ATVF = "Todas", BRK = [];
+let UID = null, DIAS = {}, FOCO = [], WHEEL = null, ATV = null, ATVH = [], ATVF = "Todas", BRK = [], ITENS = [];
 
 $("#btnLogin").addEventListener("click", async () => {
   const p = new GoogleAuthProvider(); p.setCustomParameters({ login_hint: OWNER_EMAIL });
@@ -569,6 +591,7 @@ onAuthStateChanged(auth, async user => {
   onSnapshot(query(collection(db,"users",UID,"foco"), orderBy("quando","desc"), limit(10)), snap => { FOCO = snap.docs.map(d=>d.data()); drawLog(); });
   onSnapshot(query(collection(db,"users",UID,"breaks"), where("dia","==",key(today0()))), snap => { BRK = snap.docs.map(d=>({id:d.id,...d.data()})); renderBreak(); });
   onSnapshot(doc(db,"users",UID,"atividades","resumo"), s => { ATV = s.exists() ? s.data() : null; renderAtv(); });
+  onSnapshot(collection(db,"users",UID,"atividades_itens"), snap => { ITENS = snap.docs.map(d=>d.data()); renderPrjTab(); });
   onSnapshot(collection(db,"users",UID,"atividades_hist"), snap => { ATVH = snap.docs.map(d=>({k:d.id,...d.data()})).sort((a,b)=>a.k<b.k?-1:1); renderAtv(); });
   const w = await getDoc(doc(db,"users",UID,"roda","ciclo1"));
   WHEEL = w.exists() ? w.data() : { v:[5,8,5,6,5,5,7,3], ex:true };
@@ -817,30 +840,69 @@ function renderAtv(){
   const ordem={Ativo:0,Sugerido:1,"Sem cadastro":2,Pausado:3};
   PJ.sort((a,b)=>(ordem[a.status]??9)-(ordem[b.status]??9) || b.diasSemAvanco-a.diasSemAvanco);
   const dataBR=k=>k?`${k.slice(8,10)}/${k.slice(5,7)}`:"";
-  $("#prjGrid").innerHTML = PJ.length ? PJ.map(p=>{
-    const parado = p.status==="Ativo" && p.diasSemAvanco>=7;
-    const semProx = p.abertas===0 && p.status!=="Pausado";
-    const pc = p.total? p.concluidas/p.total*100 : 0, pa = p.total? p.atrasadas/p.total*100 : 0;
-    const st = p.status==="Ativo"?"on":p.status==="Pausado"?"base":"warn";
-    return `<div class="prj${parado?" parado":""}">
-      <div class="top"><h3>${p.area==="Pessoal"?"🏠":"💼"} ${p.nome}</h3><span class="pill ${st}">${p.status.toLowerCase()}</span></div>
-      ${p.resultado?`<p class="res">✅ ${p.resultado}</p>`:`<p class="res" style="color:var(--warn)">Defina o resultado esperado na aba Projetos.</p>`}
-      <div class="pbar" title="${p.concluidas} de ${p.total} ações concluídas"><i style="width:${pc}%;background:var(--good)"></i><i style="width:${pa}%;background:var(--crit)"></i></div>
-      <div class="chips">
-        <span class="chip">${p.concluidas}/${p.total} ações</span>
-        ${p.semana?`<span class="chip good">+${p.semana} na semana</span>`:""}
-        ${p.atrasadas?`<span class="chip crit">${p.atrasadas} atrasada${p.atrasadas>1?"s":""}</span>`:""}
-        <span class="chip ${parado?"crit":p.diasSemAvanco>=4?"warn":""}">${p.ultimoAvanco?`último avanço ${dataBR(p.ultimoAvanco)} · `:""}${p.diasSemAvanco}d sem avanço</span>
-        ${p.big3?`<span class="chip good">⭐ no Big 3</span>`:""}
-      </div>
-      <div class="nx">${semProx?`<span style="color:var(--crit)">⚠️ Sem próxima ação: crie uma na planilha (verbo + entrega).</span>`:p.proxima?`<span class="muted">Próxima ação:</span> ${p.proxima.desc}${p.proxima.prazo?` <span class="kind">· ${dataBR(p.proxima.prazo)}</span>`:""}`:""}</div>
-    </div>`;}).join("") : `<div class="kpi"><span class="muted">Nenhum projeto nesta visão.</span></div>`;
+  // Resumo compacto na aba Hoje (detalhe completo na aba Projetos)
+  $("#prjGrid").className="log";
+  $("#prjGrid").innerHTML = (PJ.length ? PJ.map(p=>{
+    const s=prjSinais(p), pc=p.total?p.concluidas/p.total*100:0, pa=p.total?p.atrasadas/p.total*100:0;
+    return `<div class="prjrow"><span>${p.area==="Pessoal"?"🏠":"💼"} <b>${p.nome}</b> <span class="kind">${p.status.toLowerCase()}</span></span>
+      <span class="pbar" style="height:8px;border-radius:4px;background:var(--line);overflow:hidden;display:flex"><i style="display:block;width:${pc}%;background:var(--good)"></i><i style="display:block;width:${pa}%;background:var(--crit)"></i></span>
+      <span class="chips">${s.semProx?`<span class="chip crit">sem próxima ação</span>`:""}${s.parado?`<span class="chip crit">parado ${p.diasSemAvanco}d</span>`:""}${p.semana?`<span class="chip good">+${p.semana} na semana</span>`:""}<span class="chip">${p.concluidas}/${p.total}</span></span></div>`;}).join("") : `<span class="muted">Nenhum projeto nesta visão.</span>`)
+    + `<p style="margin-top:8px"><button type="button" class="btn" id="goPrj">Ver projetos em detalhe →</button></p>`;
+  $("#goPrj").onclick=()=>show("projetos");
   const orf=(ATV.semProjeto||[]).filter(x=>abas.includes(x.aba));
-  $("#prjOrfas").hidden = !orf.length;
-  $("#prjOrfasList").innerHTML = orf.map(x=>`<tr><td class="num" style="white-space:nowrap"><span class="late">${x.idade}d</span></td><td>${x.aba==="Pessoal"?"🏠":"💼"} ${x.desc}<br><span class="kind">${x.status}</span></td></tr>`).join("");
+  $("#prjOrfas").hidden = true;
+  renderPrjTab();
 
   const up = ATV.atualizado?.toDate?.();
   $("#atvSync").textContent = up ? `Planilha sincronizada em ${pad(up.getDate())}/${pad(up.getMonth()+1)} às ${pad(up.getHours())}:${pad(up.getMinutes())} · atrasadas contam pela data revisada (ou o prazo inicial, se não houver revisão).` : "";
+}
+
+// ================= PROJETOS (aba) =================
+const dataBR = k => k ? `${k.slice(8,10)}/${k.slice(5,7)}` : "";
+function prjSinais(p){ return { parado: p.status==="Ativo" && p.diasSemAvanco>=7, semProx: p.abertas===0 && ["Ativo","Sugerido"].includes(p.status) }; }
+function prjCard(p){
+  const s=prjSinais(p), pc=p.total?p.concluidas/p.total*100:0, pa=p.total?p.atrasadas/p.total*100:0;
+  const st=p.status==="Ativo"?"on":p.status==="Pausado"?"base":"warn";
+  const mk=a=>a.status==="Concluído"?`<span class="mk y">✓</span>`:a.status==="Aguardando terceiro"?`<span class="mk p">⏳</span>`:a.status==="Em andamento"?`<span class="mk p">~</span>`:`<span class="mk u">·</span>`;
+  const atras=a=>a.status!=="Concluído" && a.prazo && a.prazo<key(today0());
+  const lista=(p.acoes||[]).slice(0,8).map(a=>`<li class="${a.status==="Concluído"?"done":""}">${mk(a)}<span>${a.big3?"⭐ ":""}${a.desc}${a.resp&&a.resp!=="Alan"?` <span class="kind">· ${a.resp}</span>`:""}</span><span class="kind ${atras(a)?"late":""}">${a.status==="Concluído"?(a.concluidoEm?"✓ "+dataBR(a.concluidoEm):""):dataBR(a.prazo)}</span></li>`).join("");
+  const mais=(p.acoes||[]).length>8?`<li class="muted"><span></span><span>+${p.acoes.length-8} ações</span><span></span></li>`:"";
+  return `<div class="prj${s.parado||s.semProx?" parado":""}">
+    <div class="top"><h3>${p.nome}</h3><span class="pill ${st}">${p.status.toLowerCase()}</span></div>
+    ${p.resultado?`<p class="res">✅ ${p.resultado}${p.prazo?` <span class="kind">· até ${dataBR(p.prazo)}</span>`:""}</p>`:`<p class="res" style="color:var(--warn)">Sem cadastro na aba Projetos: cadastre (com resultado esperado) ou tire o nome das ações.</p>`}
+    ${p.ligacao?`<span class="kind">↳ ${p.ligacao}</span>`:""}
+    <div class="pbar" title="${p.concluidas} de ${p.total} ações concluídas"><i style="width:${pc}%;background:var(--good)"></i><i style="width:${pa}%;background:var(--crit)"></i></div>
+    <div class="chips"><span class="chip">${p.concluidas}/${p.total} ações</span>${p.semana?`<span class="chip good">+${p.semana} na semana</span>`:""}${p.atrasadas?`<span class="chip crit">${p.atrasadas} atrasada${p.atrasadas>1?"s":""}</span>`:""}<span class="chip ${s.parado?"crit":p.diasSemAvanco>=4?"warn":""}">${p.ultimoAvanco?`último avanço ${dataBR(p.ultimoAvanco)} · `:""}${p.diasSemAvanco}d sem avanço</span>${p.big3?`<span class="chip good">⭐ no Big 3</span>`:""}</div>
+    ${s.semProx?`<div class="nx" style="color:var(--crit)">⚠️ Sem próxima ação: crie uma na planilha (verbo + entrega).</div>`:""}
+    <ul class="acoes">${lista}${mais}</ul>
+  </div>`;
+}
+function renderPrjTab(){
+  if(!ATV) return;
+  const all=(ATV.projetos||[]).filter(p=>p.status!=="Concluído");
+  const ordem={Ativo:0,Sugerido:1,"Sem cadastro":2,Pausado:3};
+  all.sort((a,b)=>(ordem[a.status]??9)-(ordem[b.status]??9) || b.diasSemAvanco-a.diasSemAvanco);
+  const ativos=all.filter(p=>p.status==="Ativo");
+  const sem7=ITENS.filter(i=>i.concluidoEm && i.projeto && (today0()-new Date(i.concluidoEm+"T00:00:00"))/DAY<7).length;
+  const parados=ativos.filter(p=>prjSinais(p).parado), semProx=all.filter(p=>prjSinais(p).semProx), semCad=all.filter(p=>p.status==="Sem cadastro");
+  $("#pjKpis").innerHTML=[
+    ["Projetos ativos",`${ativos.length}<small>/ 5</small>`,ativos.length>5?"acima do limite":"dentro do limite",ativos.length>5?"down":"up"],
+    ["Ações abertas",ativos.reduce((a,p)=>a+p.abertas,0),"nos projetos ativos","flat"],
+    ["Concluídas · 7 dias",sem7,"ações de projetos","up"],
+    ["Parados",parados.length,"7 dias sem ação concluída",parados.length?"down":"up"],
+    ["Sem próxima ação",semProx.length,"precisam de uma ação nova",semProx.length?"down":"up"],
+  ].map(([l,v,d,c])=>`<div class="kpi"><span class="eyebrow">${l}</span><span class="v num">${v}</span><span class="delta ${c}">${d}</span></div>`).join("");
+  const al=[...semProx.map(p=>[p.nome,"sem próxima ação: crie uma (verbo + entrega)"]),...parados.map(p=>[p.nome,`parado há ${p.diasSemAvanco} dias: quebrar, pausar ou encerrar`]),...semCad.map(p=>[p.nome,`${p.total} ações usam este nome, mas ele não está na aba Projetos`])];
+  $("#pjAlertas").innerHTML = al.length ? al.map(([n,t])=>`<li style="padding:6px 0;border-bottom:1px solid var(--line);font-size:.88rem"><b>${n}</b><br><span class="muted">${t}</span></li>`).join("") : `<li class="muted">Nada pendente. 👍</li>`;
+  // Ritmo: ações de projetos concluídas por dia (últimos 14 dias)
+  const pts=[]; for(let i=13;i>=0;i--){ const k=key(new Date(today0().getTime()-i*DAY)); pts.push({l:dataBR(k), v:ITENS.filter(x=>x.concluidoEm===k).length}); }
+  const mx=Math.max(4,...pts.map(p=>p.v));
+  $("#pjChart").innerHTML=chart("Ações concluídas","por dia",pts,0,mx,0,1,v=>Math.round(v),"").replace('<div class="chart">','<div>');
+  $("#pjTrab").innerHTML=all.filter(p=>p.area!=="Pessoal").map(prjCard).join("")||`<span class="muted">Nenhum projeto de trabalho.</span>`;
+  $("#pjPess").innerHTML=all.filter(p=>p.area==="Pessoal").map(prjCard).join("")||`<span class="muted">Nenhum projeto pessoal.</span>`;
+  const orf=ATV.semProjeto||[];
+  $("#pjOrfas").hidden=!orf.length;
+  $("#pjOrfasList").innerHTML=orf.map(x=>`<tr><td class="num" style="white-space:nowrap"><span class="late">${x.idade}d</span></td><td>${x.aba==="Pessoal"?"🏠":"💼"} ${x.desc}<br><span class="kind">${x.status}</span></td></tr>`).join("");
 }
 
 // ================= REGISTRAR =================
