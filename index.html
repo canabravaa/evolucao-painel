@@ -472,7 +472,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
       </div>
       <div class="log">
         <div class="sec-head" style="margin:0"><h3>Sessões de hoje</h3><span class="eyebrow" id="fResumo"></span></div>
-        <div class="tbl"><table><thead><tr><th>#</th><th>Início</th><th class="r">Programado</th><th class="r">Concluído em</th><th>Situação</th></tr></thead><tbody id="fLog"></tbody></table></div>
+        <div class="tbl"><table><thead><tr><th>#</th><th>Início</th><th class="r">Programado</th><th class="r">Concluído em</th><th>Situação</th><th></th></tr></thead><tbody id="fLog"></tbody></table></div>
       </div>
     </div>
   </section>
@@ -674,7 +674,7 @@ onAuthStateChanged(auth, async user => {
     DIAS = {}; snap.forEach(d => DIAS[d.id] = d.data());
     renderAll();
   }, e => { $("#sync").className = "sync err"; console.error(e); });
-  onSnapshot(query(collection(db,"users",UID,"foco"), orderBy("quando","desc"), limit(60)), snap => { FOCO = snap.docs.map(d=>d.data()); drawLog(); renderAll(); });
+  onSnapshot(query(collection(db,"users",UID,"foco"), orderBy("quando","desc"), limit(60)), snap => { FOCO = snap.docs.map(d=>({id:d.id,...d.data()})); drawLog(); renderAll(); });
   onSnapshot(query(collection(db,"users",UID,"breaks"), where("dia","==",key(today0()))), snap => { BRK = snap.docs.map(d=>({id:d.id,...d.data()})); renderBreak(); });
   onSnapshot(doc(db,"users",UID,"atividades","resumo"), s => { ATV = s.exists() ? s.data() : null; renderAtv(); });
   // Tabela de hábitos: na primeira vez grava os 18 hábitos atuais; depois a tela passa a ler daqui
@@ -1287,9 +1287,19 @@ function drawLog(){
   $("#fResumo").textContent = ses.length ? `${conc.length} concluída${conc.length===1?"":"s"} · ${fmtMin(tot)||"0 min"} em foco` : "";
   $("#fLog").innerHTML = ses.length ? ses.map((x,i)=>{ const st=x.status||(x.real!=null?"concluída":"em andamento");
     const cor=st==="interrompida"?"var(--warn)":x.real!=null&&x.real>x.previsto?"var(--crit)":"var(--good)";
-    return `<tr><td class="num">${i+1}</td><td class="num">${hora(x)}</td><td class="r num">${x.previsto} min</td><td class="r num" style="color:${x.real!=null?cor:"var(--muted)"}">${x.real!=null?x.real+" min":"—"}</td><td><span class="kind">${st==="em andamento"?"⏱ em andamento":st}</span></td></tr>`; }).join("")
-    : `<tr><td colspan="5" class="muted">Nenhuma sessão hoje. Escolha o tempo e toque em Iniciar.</td></tr>`;
+    return `<tr><td class="num">${i+1}</td><td class="num">${hora(x)}</td><td class="r num">${x.previsto} min</td><td class="r num" style="color:${x.real!=null?cor:"var(--muted)"}">${x.real!=null?x.real+" min":"—"}</td><td><span class="kind">${st==="em andamento"?"⏱ em andamento":st}</span></td>
+      <td class="r"><button type="button" class="btn" data-fdel="${x.id}" style="padding:3px 9px;color:var(--crit)" title="Apagar sessão">${FDEL===x.id?"Confirmar":"🗑"}</button></td></tr>`; }).join("")
+    : `<tr><td colspan="6" class="muted">Nenhuma sessão hoje. Escolha o tempo e toque em Iniciar.</td></tr>`;
 }
+// apagar sessão em dois toques; se for a sessão em andamento, o relógio também zera
+let FDEL=null, FDELT=null;
+$("#fLog").addEventListener("click",async e=>{
+  const b=e.target.closest("[data-fdel]"); if(!b||!UID) return; const id=b.dataset.fdel;
+  if(FDEL!==id){ FDEL=id; drawLog(); clearTimeout(FDELT); FDELT=setTimeout(()=>{ FDEL=null; drawLog(); },5000); return; }
+  FDEL=null; clearTimeout(FDELT);
+  if(id===SESS){ SESS=null; startAt=null; accMs=0; clearInterval(timerId); $("#fStart").textContent="Iniciar"; $("#fLabel").textContent="Pronto para começar"; renderT(); }
+  try{ await deleteDoc(doc(db,"users",UID,"foco",id)); }catch(err){ $("#fResumo").textContent="Não apagou: "+err.code; }
+});
 renderT();
 
 // ================= BREAK =================
