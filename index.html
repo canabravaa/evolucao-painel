@@ -391,6 +391,8 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
         <div class="b3list" id="b3listP"></div>
         <p class="muted" style="font-size:.85rem">Concluídas: <b class="num" id="b3countP">0</b> de 3</p>
       </div>
+      <div class="fgroup"><h3>🥗 Alimentação</h3><div class="toggles" data-group="alimentacao"></div>
+        <p class="muted" style="font-size:.8rem">✓ seguiu o cardápio · ~ seguiu em parte · ✗ fora do plano. Use a observação para dizer qual refeição saiu do plano.</p></div>
       <div class="fgroup"><h3>🌙 Noite deste dia</h3><div class="toggles" data-group="noite"></div>
         <div class="fields">
           <div class="field"><label for="pos21">Tela depois das 21h (min)</label><input id="pos21" type="number" min="0" inputmode="numeric"></div>
@@ -499,7 +501,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 01/10 · aba projetos</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 01/10 · tempo real + alimentação</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
@@ -519,6 +521,7 @@ const TACTICS = ["cel21","prep","chk","hrv","b3esc","fech","foco","rev","fin","o
 const HAB = {
   manha:[["hrv","HRV ao acordar"],["banh","Banheiro sem celular"],["med","Meditação"],["treino","Treino"],["leit","Leitura"]],
   trabalho:[["b3esc","Big 3 escrito até 09:15"],["foco","Bloco de foco sem celular"],["fech","Fechamento às 17:45"],["nota","Nota do dia no Obsidian"]],
+  alimentacao:[["dieta","Seguiu o cardápio do dia"],["agua","Hidratação ok"]],
   noite:[["prep","Preparação às 20:30"],["cel21","Celular fora às 21:00"],["chk","Checkpoint das 21:45"],["cama","Deitou até 22:00"]],
   semana:[["rev","Revisão semanal (domingo)"],["fin","Ação financeira (sábado)"],["orc","Orçamento atualizado"]],
 };
@@ -588,7 +591,7 @@ onAuthStateChanged(auth, async user => {
     renderAll();
     if (!formDirty) loadForm($("#fDate").value);
   }, e => { $("#sync").className = "sync err"; console.error(e); });
-  onSnapshot(query(collection(db,"users",UID,"foco"), orderBy("quando","desc"), limit(10)), snap => { FOCO = snap.docs.map(d=>d.data()); drawLog(); });
+  onSnapshot(query(collection(db,"users",UID,"foco"), orderBy("quando","desc"), limit(60)), snap => { FOCO = snap.docs.map(d=>d.data()); drawLog(); renderAll(); });
   onSnapshot(query(collection(db,"users",UID,"breaks"), where("dia","==",key(today0()))), snap => { BRK = snap.docs.map(d=>({id:d.id,...d.data()})); renderBreak(); });
   onSnapshot(doc(db,"users",UID,"atividades","resumo"), s => { ATV = s.exists() ? s.data() : null; renderAtv(); });
   onSnapshot(collection(db,"users",UID,"atividades_itens"), snap => { ITENS = snap.docs.map(d=>d.data()); renderPrjTab(); });
@@ -776,9 +779,14 @@ function renderAll(){
   $("#b3Sub").textContent = refDia.big3Fonte==="planilha" ? "📋 da planilha Atividades FY26" : "";
   const mkS=v=>v==="y"?`<span class="mk y">✓</span>`:v==="n"?`<span class="mk n">✗</span>`:v==="p"?`<span class="mk p">~</span>`:`<span class="mk u">·</span>`;
   const tbL=m=>m?(m>=60?`${Math.floor(m/60)}h${m%60?pad(m%60):""}`:`${m} min`):"";
-  const b3li=(txt,st,mn)=>{ const it=(txt||[]).map((t,i)=>t?`<li>${mkS((st||[])[i])}<span>${t}</span><span class="tb">${tbL((mn||[])[i])}</span></li>`:"").join(""); return it||`<li><span></span><span class="muted">Nenhum item com SIM na planilha.</span><span></span></li>`; };
-  $("#b3HojeT").innerHTML=b3li(refDia.big3,refDia.big3St,refDia.big3Min);
-  $("#b3HojeP").innerHTML=b3li(refDia.big3P,refDia.big3PSt,refDia.big3PMin);
+  // tempo real = soma das sessões do timer de foco daquele item no dia (previsto × real)
+  const realMin=(pref,t)=>FOCO.filter(x=>x.dia===refK && (x.tarefa===pref+t || x.tarefa===t)).reduce((a,x)=>a+(x.real||0),0);
+  const b3li=(txt,st,mn,pref)=>{ const it=(txt||[]).map((t,i)=>{ if(!t) return ""; const prev=(mn||[])[i], real=realMin(pref,t);
+      const tempo = real ? `<span class="${prev&&real>prev?"late":"up"}">${tbL(real)||real+" min"}</span>${prev?` / ${tbL(prev)}`:""}` : tbL(prev);
+      return `<li>${mkS((st||[])[i])}<span>${t}</span><span class="tb">${tempo}</span></li>`; }).join("");
+    return it||`<li><span></span><span class="muted">Nenhum item com SIM na planilha.</span><span></span></li>`; };
+  $("#b3HojeT").innerHTML=b3li(refDia.big3,refDia.big3St,refDia.big3Min,"💼 ");
+  $("#b3HojeP").innerHTML=b3li(refDia.big3P,refDia.big3PSt,refDia.big3PMin,"🏠 ");
   // Atalho na aba Registrar quando o Big 3 da planilha já está no dia seguinte
   const selK=$("#fDate").value;
   $("#b3jump").hidden = !(ehAmanha && selK!==refK && DIAS[refK]?.big3Fonte==="planilha");
