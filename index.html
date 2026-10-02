@@ -556,7 +556,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 02/10 · sono calculado</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 02/10 · sono só calculado</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
@@ -1100,7 +1100,8 @@ function calcSono(k){
   if(ac==null||de==null) return null;
   const h=(ac+1440-de)/60; return h>0&&h<16 ? Math.round(h*10)/10 : null;
 }
-const valorInd = (x,k) => x.calc==="sono" ? calcSono(k) : DIAS[k]?.[x.id];
+const ehCalc = x => x.calc==="sono" || x.id==="sonoH"; // campo calculado: nunca aceita digitação
+const valorInd = (x,k) => ehCalc(x) ? calcSono(k) : DIAS[k]?.[x.id];
 function mediaInd(x,de,ate){ const vs=[]; for(let i=de;i<=ate;i++){ const k=key(new Date(today0().getTime()-i*DAY)); const n=numInd(x,valorInd(x,k)); if(n!=null&&!isNaN(n)) vs.push(n); } return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null; }
 const fmtMedia = (x,m) => m==null ? "—" : x.tipo==="hora" ? hm(((Math.round(m)%1440)+1440)%1440) : String(Math.round(m*10)/10).replace(".",",");
 function renderInd(){
@@ -1112,10 +1113,10 @@ function renderInd(){
       const m7=mediaInd(x,0,6), mAnt=mediaInd(x,7,13);
       let tend="—", tc="flat"; if(m7!=null&&mAnt!=null&&Math.abs(m7-mAnt)>0.05){ const sobe=m7>mAnt; tend=sobe?"▲":"▼"; tc=(sobe===(x.sentido==="maior"))?"up":"down"; }
       const cels=days.map(k=>{ const v=valorInd(x,k), ed=INDEX===`${k}|${x.id}`;
-        if(x.calc) return `<td class="c${k===hoje?" hj":""}"><span class="iv auto ${corInd(x,v)}" title="${lbl(k)}: calculado (acordar − deitar da noite anterior)">${fmtInd(x,v)||"·"}</span></td>`;
+        if(ehCalc(x)) return `<td class="c${k===hoje?" hj":""}"><span class="iv auto ${corInd(x,v)}" aria-disabled="true" title="${lbl(k)}: calculado (acordar − deitar da noite anterior)">${fmtInd(x,v)||"·"}</span></td>`;
         if(ed) return `<td class="c${k===hoje?" hj":""}"><input class="iin" data-k="${k}" data-id="${x.id}" type="${x.tipo==="hora"?"time":"number"}" ${x.tipo==="hora"?"":'step="any" inputmode="decimal"'} value="${v??""}" aria-label="${x.nome} em ${lbl(k)}"></td>`;
         return `<td class="c${k===hoje?" hj":""}"><span class="iv ${corInd(x,v)}" data-k="${k}" data-id="${x.id}" role="button" tabindex="0" title="${lbl(k)}: toque para editar">${fmtInd(x,v)||"·"}</span></td>`; }).join("");
-      return `<tr><td>${x.nome}${x.un?` <span class="kind">${x.un}</span>`:""}</td>${cels}<td class="r num">${fmtMedia(x,m7)}</td><td class="r num ${tc}">${tend}</td><td class="r num kind">${x.sentido==="menor"?"≤":"≥"} ${fmtInd(x,x.meta)}</td></tr>`; }).join("")).join("")}</tbody>`;
+      return `<tr><td>${x.nome}${ehCalc(x)?` <span title="calculado automaticamente">🧮</span>`:""}${x.un?` <span class="kind">${x.un}</span>`:""}</td>${cels}<td class="r num">${fmtMedia(x,m7)}</td><td class="r num ${tc}">${tend}</td><td class="r num kind">${x.sentido==="menor"?"≤":"≥"} ${fmtInd(x,x.meta)}</td></tr>`; }).join("")).join("")}</tbody>`;
   const inp=$("#itable .iin"); if(inp){ inp.focus(); inp.select?.(); }
   // lista de gerenciamento
   $("#indGrupos").innerHTML=grupos.map(g=>`<option value="${g}">`).join("");
@@ -1123,7 +1124,7 @@ function renderInd(){
     <td class="r" style="white-space:nowrap"><button type="button" class="btn" data-ied="${x.id}" style="padding:4px 10px">Editar</button> <button type="button" class="btn" data-iex="${x.id}" style="padding:4px 10px;color:var(--crit)">${INDEXCL===x.id?"Confirmar exclusão":"Excluir"}</button></td></tr>`).join("");
 }
 async function salvarInd(k,id,bruto){
-  const x=INDS.find(i=>i.id===id); INDEX=null; if(!x||!UID){ renderInd(); return; }
+  const x=INDS.find(i=>i.id===id); INDEX=null; if(!x||!UID||ehCalc(x)){ renderInd(); return; }
   let v=String(bruto??"").trim().replace(",",".");
   if(v==="") v=null; else if(x.tipo==="numero"){ v=Number(v); if(isNaN(v)){ $("#indMsg").textContent="Valor inválido: use só números."; renderInd(); return; } }
   else if(!/^\d{1,2}:\d{2}$/.test(v)){ $("#indMsg").textContent="Horário inválido: use HH:MM."; renderInd(); return; }
@@ -1140,7 +1141,7 @@ async function salvarInd(k,id,bruto){
 }
 $("#itable").addEventListener("click",e=>{ const c=e.target.closest(".iv"); if(!c||c.classList.contains("auto")) return; INDEX=`${c.dataset.k}|${c.dataset.id}`; renderInd(); });
 $("#itable").addEventListener("keydown",e=>{
-  const c=e.target.closest(".iv"); if(c&&(e.key==="Enter"||e.key===" ")){ e.preventDefault(); INDEX=`${c.dataset.k}|${c.dataset.id}`; renderInd(); return; }
+  const c=e.target.closest(".iv"); if(c&&!c.classList.contains("auto")&&(e.key==="Enter"||e.key===" ")){ e.preventDefault(); INDEX=`${c.dataset.k}|${c.dataset.id}`; renderInd(); return; }
   const i=e.target.closest(".iin"); if(!i) return;
   if(e.key==="Enter"){ e.preventDefault(); salvarInd(i.dataset.k,i.dataset.id,i.value); }
   if(e.key==="Escape"){ INDEX=null; renderInd(); } });
