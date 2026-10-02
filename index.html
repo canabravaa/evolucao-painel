@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -500,7 +500,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
         <div class="field"><label>Dias em que se aplica</label><div class="row" style="justify-content:flex-start" id="habDiasSel"></div></div>
         <div class="row" style="justify-content:flex-start"><button class="btn primary" type="submit" id="habSalvar">Incluir hábito</button><button class="btn" type="button" id="habCancelar" hidden>Cancelar edição</button><span class="muted" id="habMsg" style="align-self:center;font-size:.85rem"></span></div>
       </form>
-      <div class="tbl"><table><thead><tr><th>Hábito</th><th>Frequência</th><th class="r">Peso</th><th>Tática</th><th>Status</th><th></th></tr></thead><tbody id="habLista"></tbody></table></div>
+      <div class="tbl"><table><thead><tr><th>Hábito</th><th>Grupo</th><th>Frequência</th><th class="r">Peso</th><th>Tática</th><th>Status</th><th></th></tr></thead><tbody id="habLista"></tbody></table></div>
     </div>
   </section>
 
@@ -539,13 +539,13 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 02/10 · quadro de hábitos</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 02/10 · gerenciar hábitos</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, onSnapshot, addDoc, query, orderBy, limit, where, increment, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, onSnapshot, addDoc, query, orderBy, limit, where, increment, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig, OWNER_EMAIL } from "./firebase-config.js";
 
 const $ = s => document.querySelector(s);
@@ -931,6 +931,7 @@ function renderAtv(){
 // ================= HÁBITOS (aba) =================
 let HSEL = null; // dia selecionado para marcar (padrão: hoje)
 const KONS = new Set(); // evita gravar a consolidação duas vezes
+let EXCL = null, EXCLT = null; // hábito aguardando a confirmação de exclusão
 const diasEntre = (a,b) => Math.round((new Date(b+"T12:00:00")-new Date(a+"T12:00:00"))/DAY);
 const semanaDe = k => { const d=new Date(k+"T12:00:00"); const seg=new Date(d.getTime()-((d.getDay()+6)%7)*DAY); return key(seg); }; // segunda-feira
 // Estatística de 30 dias: aplicáveis, confirmados (✓ = 1, ~ = 0,5), taxa; hoje sem registro não conta (o dia não acabou)
@@ -988,8 +989,9 @@ function renderHab(){
     : `<p class="muted" style="font-size:.88rem">Nenhum ainda. Um hábito entra aqui sozinho depois de 30 dias de acompanhamento com taxa ≥ 90% (ex.: 27 de 30 dias aplicáveis).</p>`;
   // lista de gerenciamento
   const st={ativo:"on",pausado:"base",consolidado:"good"};
-  $("#habLista").innerHTML = HABITOS.slice().sort((a,b)=>(a.status>b.status?1:-1)||(a.ordem??99)-(b.ordem??99)).map(h=>`<tr><td>${h.nome}${h.auto?" 🤖":""}<br><span class="kind">${(GRUPOS.find(g=>g[0]===h.grupo)||["","✨ Outros"])[1]}</span></td><td>${freqTxt(h)}</td><td class="r num">${h.peso||0}</td><td>${h.tatica||""}</td><td><span class="pill ${st[h.status]||"base"}">${h.status}</span></td>
-    <td class="r" style="white-space:nowrap"><button type="button" class="btn" data-editar="${h.id}" style="padding:4px 10px">Editar</button> ${h.status==="consolidado"?"":`<button type="button" class="btn" data-pausar="${h.id}" style="padding:4px 10px">${h.status==="pausado"?"Ativar":"Pausar"}</button>`}</td></tr>`).join("");
+  $("#habLista").innerHTML = HABITOS.slice().sort((a,b)=>(a.status>b.status?1:-1)||(a.ordem??99)-(b.ordem??99)).map(h=>`<tr><td>${h.nome}${h.auto?" 🤖":""}</td><td style="white-space:nowrap">${(GRUPOS.find(g=>g[0]===h.grupo)||["","✨ Outros"])[1]}</td><td>${freqTxt(h)}</td><td class="r num">${h.peso||0}</td><td>${h.tatica||""}</td><td><span class="pill ${st[h.status]||"base"}">${h.status}</span></td>
+    <td class="r" style="white-space:nowrap"><button type="button" class="btn" data-editar="${h.id}" style="padding:4px 10px">Editar</button> ${h.status==="consolidado"?"":`<button type="button" class="btn" data-pausar="${h.id}" style="padding:4px 10px">${h.status==="pausado"?"Ativar":"Pausar"}</button>`}
+      ${h.auto?"":`<button type="button" class="btn" data-excluir="${h.id}" style="padding:4px 10px;color:var(--crit)">${EXCL===h.id?"Confirmar exclusão":"Excluir"}</button>`}</td></tr>`).join("");
 }
 // eventos da aba Hábitos
 $("#htable").addEventListener("click",e=>{ const s=e.target.closest(".mk.ed"); if(s) marcar(s.dataset.k,s.dataset.id); });
@@ -1008,7 +1010,13 @@ const formHab=(h)=>{ $("#habId").value=h?.id||""; $("#habNome").value=h?.nome||"
   $("#habSalvar").textContent=h?"Salvar alterações":"Incluir hábito"; $("#habCancelar").hidden=!h; };
 $("#habCancelar").addEventListener("click",()=>{ formHab(null); $("#habMsg").textContent=""; });
 $("#habLista").addEventListener("click",async e=>{
-  const ed=e.target.closest("[data-editar]"), pz=e.target.closest("[data-pausar]"); if(!UID) return;
+  const ed=e.target.closest("[data-editar]"), pz=e.target.closest("[data-pausar]"), ex=e.target.closest("[data-excluir]"); if(!UID) return;
+  // excluir em dois toques: o primeiro pede confirmação; as marcações já feitas ficam no histórico dos dias
+  if(ex){ const id=ex.dataset.excluir, h=HABITOS.find(x=>x.id===id);
+    if(EXCL!==id){ EXCL=id; renderHab(); $("#habMsg").textContent=`Toque em "Confirmar exclusão" para excluir "${h.nome}". Prefere guardar o histórico? Use Pausar.`; clearTimeout(EXCLT); EXCLT=setTimeout(()=>{ EXCL=null; renderHab(); },6000); return; }
+    EXCL=null; clearTimeout(EXCLT);
+    try{ await deleteDoc(doc(db,"users",UID,"habitos",id)); $("#habMsg").textContent=`"${h.nome}" excluído.`; } catch(err){ $("#habMsg").textContent="Não excluiu: "+err.code; }
+    return; }
   if(ed){ formHab(HABITOS.find(h=>h.id===ed.dataset.editar)); $("#habNome").focus(); }
   if(pz){ const h=HABITOS.find(x=>x.id===pz.dataset.pausar); const novo=h.status==="pausado"?"ativo":"pausado";
     if(novo==="ativo" && hAtivos().filter(x=>!x.auto).length>=LIMITE_HAB){ $("#habMsg").textContent=`Limite de ${LIMITE_HAB} em controle: pause outro antes.`; return; }
