@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -387,7 +387,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
       <div class="seg" id="atvVis" role="group" aria-label="Visão">
         <button type="button" data-v="big3" aria-pressed="true">⭐ Big 3</button><button type="button" data-v="projetos" aria-pressed="false">📁 Por projeto</button><button type="button" data-v="lista" aria-pressed="false">☰ Lista</button>
       </div></div>
-    <p class="note">Fonte única: planilha <strong>Atividades FY26</strong>. Para incluir, mudar status ou marcar BIG 3 = SIM, edite a planilha (o painel atualiza sozinho em ~15 s). Aqui ficam o tempo-limite e o timer.</p>
+    <p class="note">Fonte única: planilha <strong>Atividades FY26</strong>. <b>✓ Concluir</b> e <b>↺ Reabrir</b> aqui gravam o status direto na planilha (pelo vigia do computador; com o Excel aberto, assim que ele fechar). Para incluir atividades ou marcar BIG 3 = SIM, use a planilha.</p>
 
     <div id="atvV-big3" style="display:grid;gap:14px">
       <div class="sec-head" style="margin:0"><h3 id="ab3Tit">Big 3</h3><div class="row"><button type="button" class="btn" id="ab3Prev">←</button><button type="button" class="btn" id="ab3Hoje">Hoje</button><button type="button" class="btn" id="ab3Next">→</button></div></div>
@@ -402,7 +402,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
         <div class="seg" id="alFiltro"><button type="button" data-a="Todas" aria-pressed="true">Todas</button><button type="button" data-a="Trabalho" aria-pressed="false">💼 Trabalho</button><button type="button" data-a="Pessoal" aria-pressed="false">🏠 Pessoal</button></div>
         <label class="muted" style="font-size:.85rem;display:flex;gap:6px;align-items:center"><input type="checkbox" id="alConc"> mostrar concluídas</label>
       </div>
-      <div class="tbl"><table><thead><tr><th>Prazo</th><th>Atividade</th><th>Projeto</th><th>Resp.</th><th>Status</th></tr></thead><tbody id="alLista"></tbody></table></div>
+      <div class="tbl"><table><thead><tr><th>Prazo</th><th>Atividade</th><th>Projeto</th><th>Resp.</th><th>Status</th><th></th></tr></thead><tbody id="alLista"></tbody></table></div>
     </div>
 
     <div id="atvV-projetos" hidden style="display:grid;gap:24px">
@@ -554,7 +554,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 02/10 · atividades + indicadores</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 02/10 · concluir pelo painel</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
@@ -697,6 +697,8 @@ onAuthStateChanged(auth, async user => {
     renderInd();
   });
   onSnapshot(collection(db,"users",UID,"atividades_itens"), snap => { ITENS = snap.docs.map(d=>d.data()); renderPrjTab(); renderAtvTab(); });
+  onSnapshot(query(collection(db,"users",UID,"atividades_pendentes"), where("aplicado","==",false)), snap => {
+    PEND = Object.fromEntries(snap.docs.map(d=>[d.id, d.data().status])); renderAtvTab(); });
   onSnapshot(collection(db,"users",UID,"atividades_hist"), snap => { ATVH = snap.docs.map(d=>({k:d.id,...d.data()})).sort((a,b)=>a.k<b.k?-1:1); renderAtv(); });
   const w = await getDoc(doc(db,"users",UID,"roda","ciclo1"));
   WHEEL = w.exists() ? w.data() : { v:[5,8,5,6,5,5,7,3], ex:true };
@@ -1156,7 +1158,7 @@ $("#indForm").addEventListener("submit",async e=>{
 });
 
 // ================= ATIVIDADES (aba): Big 3 · Por projeto · Lista =================
-let AB3 = null, ALF = "Todas";
+let AB3 = null, ALF = "Todas", PEND = {};
 function atvVisao(v){ document.querySelectorAll("#atvVis button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===v))); ["big3","projetos","lista"].forEach(x=>$("#atvV-"+x).hidden = x!==v); }
 $("#atvVis").addEventListener("click",e=>{ const b=e.target.closest("[data-v]"); if(b) atvVisao(b.dataset.v); });
 $("#alFiltro").addEventListener("click",e=>{ const b=e.target.closest("[data-a]"); if(!b) return; ALF=b.dataset.a; $("#alFiltro").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); renderAtvTab(); });
@@ -1173,15 +1175,11 @@ function renderAtvTab(){
   const info=(aba,t)=>ITENS.find(i=>i.aba===aba && i.desc===t);
   const card=(aba,pref,txt,min,campoMin)=>{ const lista=(txt||[]).map((t,i)=>[t,i]).filter(([t])=>t);
     if(!lista.length) return `<p class="muted" style="font-size:.88rem">Nenhum item com BIG 3 = SIM na planilha para este dia.</p>`;
-    return lista.map(([t,i])=>{ const it=info(aba,t), conc=it?.status==="Concluído", real=FOCO.filter(x=>x.dia===k&&(x.tarefa===pref+t||x.tarefa===t)).reduce((a,x)=>a+(x.real||0),0), prev=(min||[])[i];
+    return lista.map(([t,i])=>{ const it=info(aba,t), conc=it?.status==="Concluído";
       return `<div class="prj" style="gap:6px">
-        <div class="top"><span>${conc?`<span class="mk y">✓</span>`:`<span class="mk u">${i+1}</span>`} <b style="${conc?"text-decoration:line-through;color:var(--muted)":""}">${t}</b></span><span class="pill ${conc?"good":"base"}">${it?.status||"—"}</span></div>
-        <div class="chips">${it?.projeto?`<span class="chip">📁 ${it.projeto}</span>`:""}${it?.prazo?`<span class="chip ${!conc&&it.prazo<hoje?"crit":""}">prazo ${dataBR(it.prazo)}</span>`:""}${it?.resp&&it.resp!=="Alan"?`<span class="chip">${it.resp}</span>`:""}</div>
-        <div class="row" style="justify-content:flex-start;align-items:center">
-          <select class="tbsel" data-k="${k}" data-campo="${campoMin}" data-i="${i}" aria-label="Tempo-limite">${TIMEBOX.map(([v,l])=>`<option value="${v}" ${String(prev??"")===v?"selected":""}>${l}</option>`).join("")}</select>
-          <span class="num ${prev&&real>prev?"late":""}" style="font-size:.85rem">⏱ real ${real?fmtMin(real):"0 min"}</span>
-          ${conc?"":`<button type="button" class="btn" data-foco="${pref}${t}" style="padding:5px 12px">▶ Foco</button>`}
-        </div></div>`; }).join(""); };
+        <div class="top"><span>${conc?`<span class="mk y">✓</span>`:`<span class="mk u">${i+1}</span>`} <b style="${conc?"text-decoration:line-through;color:var(--muted)":""}">${t}</b></span>${botaoConc(aba,t,it?.status)}</div>
+        <div class="chips"><span class="chip">${it?.status||"—"}</span>${it?.projeto?`<span class="chip">📁 ${it.projeto}</span>`:""}${it?.prazo?`<span class="chip ${!conc&&it.prazo<hoje?"crit":""}">prazo ${dataBR(it.prazo)}</span>`:""}${it?.resp&&it.resp!=="Alan"?`<span class="chip">${it.resp}</span>`:""}</div>
+      </div>`; }).join(""); };
   $("#ab3T").innerHTML=card("Trabalho","💼 ",d.big3,d.big3Min,"big3Min");
   $("#ab3P").innerHTML=card("Pessoal","🏠 ",d.big3P,d.big3PMin,"big3PMin");
   const cnt=(txt,aba)=>{ const l=(txt||[]).filter(Boolean); return l.length?`${l.filter(t=>info(aba,t)?.status==="Concluído").length}/${l.length}`:""; };
@@ -1191,14 +1189,24 @@ function renderAtvTab(){
   const lst=ITENS.filter(i=>(ALF==="Todas"||i.aba===ALF) && i.status!=="Cancelado" && (mostraConc||i.status!=="Concluído"))
     .sort((a,b)=>((a.status==="Concluído")-(b.status==="Concluído")) || ((a.prazo||"9")<(b.prazo||"9")?-1:(a.prazo||"9")>(b.prazo||"9")?1:0));
   $("#alLista").innerHTML = lst.length ? lst.map(i=>{ const atr=i.status!=="Concluído"&&i.prazo&&i.prazo<hoje;
-    return `<tr><td class="num" style="white-space:nowrap">${i.prazo?`<span class="${atr?"late":i.prazo===hoje?"soon":""}">${dataBR(i.prazo)}</span>`:"—"}</td><td style="${i.status==="Concluído"?"text-decoration:line-through;color:var(--muted)":""}">${i.big3?"⭐ ":""}${i.aba==="Pessoal"?"🏠":"💼"} ${i.desc}</td><td>${i.projeto?`<span class="chip">${i.projeto}</span>`:`<span class="kind">sem projeto</span>`}</td><td>${i.resp||""}</td><td><span class="kind">${i.status}</span></td></tr>`; }).join("")
-    : `<tr><td colspan="5" class="muted">Nada nesta visão.</td></tr>`;
+    return `<tr><td class="num" style="white-space:nowrap">${i.prazo?`<span class="${atr?"late":i.prazo===hoje?"soon":""}">${dataBR(i.prazo)}</span>`:"—"}</td><td style="${i.status==="Concluído"?"text-decoration:line-through;color:var(--muted)":""}">${i.big3?"⭐ ":""}${i.aba==="Pessoal"?"🏠":"💼"} ${i.desc}</td><td>${i.projeto?`<span class="chip">${i.projeto}</span>`:`<span class="kind">sem projeto</span>`}</td><td>${i.resp||""}</td><td><span class="kind">${i.status}</span></td><td class="r">${botaoConc(i.aba,i.desc,i.status)}</td></tr>`; }).join("")
+    : `<tr><td colspan="6" class="muted">Nada nesta visão.</td></tr>`;
 }
-$("#atvV-big3").addEventListener("change",async e=>{ const s=e.target.closest(".tbsel"); if(!s||!UID) return;
-  const k=s.dataset.k, campo=s.dataset.campo, i=+s.dataset.i, arr=[...(DIAS[k]?.[campo]||[null,null,null])]; arr[i]=s.value?Number(s.value):null;
-  try{ await setDoc(doc(db,"users",UID,"dias",k),{[campo]:arr},{merge:true}); }catch(err){ alertMsg(err); } });
-$("#atvV-big3").addEventListener("click",e=>{ const b=e.target.closest("[data-foco]"); if(b) focoEm(b.dataset.foco); });
-const alertMsg = err => { $("#ab3Tit").textContent = "Não salvou: "+err.code; };
+// Confirmação pelo painel: grava um pedido em atividades_pendentes; o vigia aplica na planilha e a sincronização devolve o ✓
+const pendId = (aba,desc) => (aba+"-"+desc).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").slice(0,140);
+function botaoConc(aba,desc,status){
+  const p=PEND[pendId(aba,desc)];
+  if(p) return `<span class="chip warn" title="Aguardando o vigia gravar na planilha (se o Excel estiver aberto, assim que fechar)">⏳ ${p==="Concluído"?"concluindo":"reabrindo"}…</span>`;
+  if(status==="Concluído") return `<button type="button" class="btn" data-conc="${encodeURIComponent(desc)}" data-aba="${aba}" data-st="Em andamento" style="padding:4px 10px" title="Voltar para Em andamento">↺ Reabrir</button>`;
+  return `<button type="button" class="btn primary" data-conc="${encodeURIComponent(desc)}" data-aba="${aba}" data-st="Concluído" style="padding:4px 12px">✓ Concluir</button>`;
+}
+async function pedirStatus(aba,desc,status){
+  if(!UID) return;
+  PEND[pendId(aba,desc)]=status; renderAtvTab(); // resposta imediata na tela
+  try{ await setDoc(doc(db,"users",UID,"atividades_pendentes",pendId(aba,desc)),{aba,desc,status,aplicado:false,erro:null,criadoEm:serverTimestamp()}); }
+  catch(err){ delete PEND[pendId(aba,desc)]; renderAtvTab(); $("#ab3Tit").textContent="Não enviou: "+err.code; }
+}
+["#atvV-big3","#atvV-lista"].forEach(s=>$(s).addEventListener("click",e=>{ const b=e.target.closest("[data-conc]"); if(b) pedirStatus(b.dataset.aba,decodeURIComponent(b.dataset.conc),b.dataset.st); }));
 
 // ================= PROJETOS (aba) =================
 const dataBR = k => k ? `${k.slice(8,10)}/${k.slice(5,7)}` : "";
