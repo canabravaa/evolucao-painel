@@ -568,7 +568,7 @@ const D7=[0,1,2,3,4,5,6], UTEIS=[1,2,3,4,5], LIMITE_HAB=12, DSEM=["D","S","T","Q
 const SEED_HAB=[
   ["hrv","HRV ao acordar","manha",D7,5,"T4"],["banh","Banheiro sem celular","manha",D7,5],["med","Meditação","manha",D7,5],
   ["treino","Treino","manha",[1,2,3,4,5,6],7],["leit","Leitura","manha",D7,3],
-  ["b3esc","Big 3 escrito até 09:15","trabalho",UTEIS,5,"T5"],["foco","Bloco de foco sem celular","trabalho",UTEIS,5,"T8"],
+  ["b3esc","Big 3 escrito até 09:15","trabalho",UTEIS,5,"T5",true], // marcado pelo sync da planilha (SIM na véspera ou até 09:15)["foco","Bloco de foco sem celular","trabalho",UTEIS,5,"T8"],
   ["fech","Fechamento às 17:45","trabalho",UTEIS,5,"T6"],["nota","Nota do dia no Obsidian","trabalho",D7,3,null,true],
   ["dieta","Seguiu o cardápio do dia","alimentacao",D7,5],["agua","Hidratação ok","alimentacao",D7,2],
   ["prep","Preparação às 20:30","noite",D7,5,"T2"],["cel21","Celular fora às 21:00","noite",D7,7,"T1"],
@@ -974,7 +974,7 @@ function renderHab(){
   // marcação do dia selecionado, por grupo
   $("#habHoje").innerHTML = GRUPOS.map(([g,t])=>{ const hs=ativos.filter(h=>(h.grupo||"outros")===g && aplica(h,HSEL)); if(!hs.length) return "";
     return `<div class="habgrp"><span class="eyebrow">${t}</span><div class="toggles">${hs.map(h=>{ const v=DIAS[HSEL]?.[h.id]||"";
-      return `<button type="button" class="tg hb" data-id="${h.id}" data-v="${v}" ${h.auto?"disabled title='Marcado automaticamente pelo Obsidian'":""}><span>${h.nome}${h.auto?" 🤖":""}</span><span class="st">${SYM[v]}</span></button>`; }).join("")}</div></div>`; }).join("");
+      return `<button type="button" class="tg hb" data-id="${h.id}" data-v="${v}" ${h.auto?"disabled title='Marcado automaticamente (Obsidian ou planilha)'":""}><span>${h.nome}${h.auto?" 🤖":""}</span><span class="st">${SYM[v]}</span></button>`; }).join("")}</div></div>`; }).join("");
   // histórico 30 dias
   const d30=[]; for(let i=29;i>=0;i--) d30.push(key(new Date(today0().getTime()-i*DAY)));
   const lim7=key(new Date(today0().getTime()-6*DAY));
