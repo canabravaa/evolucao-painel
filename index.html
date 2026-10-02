@@ -556,7 +556,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 02/10 · sono só calculado</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 02/10 · pedidos já refletidos</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
@@ -1208,7 +1208,8 @@ function renderAtvTab(){
 const pendId = (aba,desc) => (aba+"-"+desc).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").slice(0,140);
 function botaoConc(aba,desc,status){
   const p=PEND[pendId(aba,desc)];
-  if(p) return `<span class="chip warn" title="Aguardando o vigia gravar na planilha (se o Excel estiver aberto, assim que fechar)">⏳ ${p==="Concluído"?"concluindo":"reabrindo"}…</span>`;
+  // se a planilha já está com o status pedido, o pedido não importa mais (o vigia dá baixa na próxima sincronização)
+  if(p && p!==status) return `<span class="chip warn" title="Aguardando o vigia gravar na planilha (se o Excel estiver aberto, assim que fechar)">⏳ ${p==="Concluído"?"concluindo":"reabrindo"}…</span>`;
   if(status==="Concluído") return `<button type="button" class="btn" data-conc="${encodeURIComponent(desc)}" data-aba="${aba}" data-st="Em andamento" style="padding:4px 10px" title="Voltar para Em andamento">↺ Reabrir</button>`;
   return `<button type="button" class="btn primary" data-conc="${encodeURIComponent(desc)}" data-aba="${aba}" data-st="Concluído" style="padding:4px 12px">✓ Concluir</button>`;
 }
