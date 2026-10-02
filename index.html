@@ -139,6 +139,7 @@ nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:v
 #itable .iv.ig,#itable .iv.iw,#itable .iv.ic{border:0;color:var(--paper);font-weight:600}
 #itable .iv.ig{background:var(--good)} #itable .iv.iw{background:var(--warn)} #itable .iv.ic{background:var(--crit)}
 #itable .iv:hover{outline:2px solid var(--accent);outline-offset:1px}
+#itable .iv.auto{cursor:default;border-style:dotted} #itable .iv.auto:hover{outline:none}
 #itable .iin{width:76px;font:inherit;font-family:var(--f-mono);font-size:.8rem;padding:4px;border:2px solid var(--accent);border-radius:4px;background:var(--paper);color:var(--ink)}
 #itable .gr td{padding-top:14px}
 .tbsel{font:inherit;font-family:var(--f-mono);font-size:.82rem;padding:5px 6px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink)}
@@ -555,7 +556,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 02/10 · foco lado a lado</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 02/10 · sono calculado</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
@@ -598,14 +599,15 @@ const SEED_IND=[
   ["cel1","1º uso do celular","📱 Celular","hora","","maior","05:10","04:55"],
   ["hrvV","HRV","❤️ Saúde","numero","","maior",65,55],
   ["deitar","Horário de deitar","😴 Sono","hora","","menor","22:00","22:30"],
-  ["sonoH","Horas de sono","😴 Sono","numero","h","maior",7,6.5],
+  ["acordar","Horário de acordar","😴 Sono","hora","","menor","04:50","05:10"],
+  ["sonoH","Horas de sono (calculado)","😴 Sono","numero","h","maior",7,6.5,"sono"],
   ["enM","Energia · manhã","⚡ Energia e estresse","numero","1–5","maior",4,3],
   ["enT","Energia · tarde","⚡ Energia e estresse","numero","1–5","maior",4,3],
   ["enN","Energia · noite","⚡ Energia e estresse","numero","1–5","maior",4,3],
   ["esM","Estresse · manhã","⚡ Energia e estresse","numero","1–5","menor",2,3],
   ["esT","Estresse · tarde","⚡ Energia e estresse","numero","1–5","menor",2,3],
   ["esN","Estresse · noite","⚡ Energia e estresse","numero","1–5","menor",2,3],
-].map(([id,nome,grupo,tipo,un,sentido,meta,am],i)=>({id,nome,grupo,tipo,un,sentido,meta,am,ordem:i}));
+].map(([id,nome,grupo,tipo,un,sentido,meta,am,calc],i)=>({id,nome,grupo,tipo,un,sentido,meta,am,ordem:i,...(calc?{calc}:{})}));
 let INDS = SEED_IND.slice();
 const hAtivos = () => HABITOS.filter(h=>h.status==="ativo");
 const aplica = (h,k) => (h.dias||D7).includes(new Date(k+"T12:00:00").getDay());
@@ -1090,7 +1092,16 @@ function corInd(x,v){
 }
 const fmtMin = m => m ? (m>=60 ? `${Math.floor(m/60)}h${m%60?pad(m%60):""}` : `${m} min`) : "";
 const fmtInd = (x,v) => v==null||v==="" ? "" : x.tipo==="hora" ? v : String(Math.round(Number(v)*10)/10).replace(".",",");
-function mediaInd(x,de,ate){ const vs=[]; for(let i=de;i<=ate;i++){ const k=key(new Date(today0().getTime()-i*DAY)); const n=numInd(x,DIAS[k]?.[x.id]); if(n!=null&&!isNaN(n)) vs.push(n); } return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null; }
+// Horas de sono do dia k = acordar (dia k) − deitar (noite anterior, dia k−1). Deitar depois da meia-noite conta no dia seguinte.
+function calcSono(k){
+  const dI=INDS.find(i=>i.id==="deitar")||{tipo:"hora",meta:"22:00"};
+  const kAnt=key(new Date(new Date(k+"T12:00:00").getTime()-DAY));
+  const ac=toMin(DIAS[k]?.acordar), de=minInd(dI,DIAS[kAnt]?.deitar);
+  if(ac==null||de==null) return null;
+  const h=(ac+1440-de)/60; return h>0&&h<16 ? Math.round(h*10)/10 : null;
+}
+const valorInd = (x,k) => x.calc==="sono" ? calcSono(k) : DIAS[k]?.[x.id];
+function mediaInd(x,de,ate){ const vs=[]; for(let i=de;i<=ate;i++){ const k=key(new Date(today0().getTime()-i*DAY)); const n=numInd(x,valorInd(x,k)); if(n!=null&&!isNaN(n)) vs.push(n); } return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null; }
 const fmtMedia = (x,m) => m==null ? "—" : x.tipo==="hora" ? hm(((Math.round(m)%1440)+1440)%1440) : String(Math.round(m*10)/10).replace(".",",");
 function renderInd(){
   if(!$("#itable")) return;
@@ -1100,7 +1111,8 @@ function renderInd(){
     grupos.map(g=>`<tr class="gr"><td colspan="${days.length+4}" class="eyebrow">${g}</td></tr>`+INDS.filter(x=>(x.grupo||"Outros")===g).map(x=>{
       const m7=mediaInd(x,0,6), mAnt=mediaInd(x,7,13);
       let tend="—", tc="flat"; if(m7!=null&&mAnt!=null&&Math.abs(m7-mAnt)>0.05){ const sobe=m7>mAnt; tend=sobe?"▲":"▼"; tc=(sobe===(x.sentido==="maior"))?"up":"down"; }
-      const cels=days.map(k=>{ const v=DIAS[k]?.[x.id], ed=INDEX===`${k}|${x.id}`;
+      const cels=days.map(k=>{ const v=valorInd(x,k), ed=INDEX===`${k}|${x.id}`;
+        if(x.calc) return `<td class="c${k===hoje?" hj":""}"><span class="iv auto ${corInd(x,v)}" title="${lbl(k)}: calculado (acordar − deitar da noite anterior)">${fmtInd(x,v)||"·"}</span></td>`;
         if(ed) return `<td class="c${k===hoje?" hj":""}"><input class="iin" data-k="${k}" data-id="${x.id}" type="${x.tipo==="hora"?"time":"number"}" ${x.tipo==="hora"?"":'step="any" inputmode="decimal"'} value="${v??""}" aria-label="${x.nome} em ${lbl(k)}"></td>`;
         return `<td class="c${k===hoje?" hj":""}"><span class="iv ${corInd(x,v)}" data-k="${k}" data-id="${x.id}" role="button" tabindex="0" title="${lbl(k)}: toque para editar">${fmtInd(x,v)||"·"}</span></td>`; }).join("");
       return `<tr><td>${x.nome}${x.un?` <span class="kind">${x.un}</span>`:""}</td>${cels}<td class="r num">${fmtMedia(x,m7)}</td><td class="r num ${tc}">${tend}</td><td class="r num kind">${x.sentido==="menor"?"≤":"≥"} ${fmtInd(x,x.meta)}</td></tr>`; }).join("")).join("")}</tbody>`;
@@ -1119,10 +1131,14 @@ async function salvarInd(k,id,bruto){
   // o horário de deitar marca sozinho o hábito "Deitou até 22:00"
   if(id==="deitar" && v) upd.cama = minInd(x,v) <= minInd(x,"22:00") ? "y" : "n";
   const novo={...(DIAS[k]||{}),...upd}; DIAS[k]=novo; renderInd();
-  try{ await setDoc(doc(db,"users",UID,"dias",k),{...upd, notaDia:notaDia(novo,k).nota},{merge:true}); }
+  try{ await setDoc(doc(db,"users",UID,"dias",k),{...upd, notaDia:notaDia(novo,k).nota},{merge:true});
+    // horas de sono calculadas ficam gravadas no dia em que acordou (para a revisão e para o histórico)
+    const kSono = id==="deitar" ? key(new Date(new Date(k+"T12:00:00").getTime()+DAY)) : id==="acordar" ? k : null;
+    if(kSono){ const h=calcSono(kSono); await setDoc(doc(db,"users",UID,"dias",kSono),{sonoH:h},{merge:true}); }
+  }
   catch(e){ $("#indMsg").textContent="Não salvou: "+e.code; }
 }
-$("#itable").addEventListener("click",e=>{ const c=e.target.closest(".iv"); if(!c) return; INDEX=`${c.dataset.k}|${c.dataset.id}`; renderInd(); });
+$("#itable").addEventListener("click",e=>{ const c=e.target.closest(".iv"); if(!c||c.classList.contains("auto")) return; INDEX=`${c.dataset.k}|${c.dataset.id}`; renderInd(); });
 $("#itable").addEventListener("keydown",e=>{
   const c=e.target.closest(".iv"); if(c&&(e.key==="Enter"||e.key===" ")){ e.preventDefault(); INDEX=`${c.dataset.k}|${c.dataset.id}`; renderInd(); return; }
   const i=e.target.closest(".iin"); if(!i) return;
