@@ -130,6 +130,10 @@ nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:v
 .brkstats div{display:grid}
 .brkstats .v{font-family:var(--f-display);font-weight:700;font-size:1.8rem;line-height:1}
 .brkstats .v small{font-size:.5em;color:var(--muted);margin-left:2px}
+#htable .mk.ed{cursor:pointer} #htable .mk.ed:hover{outline:2px solid var(--accent);outline-offset:1px}
+#htable .mk.na{color:var(--muted);opacity:.45}
+#htable td.hj,#htable th.hj{background:var(--accent-soft)}
+#htable .gr td{padding-top:12px}
 .habtab td{padding:6px 6px;vertical-align:middle}
 .habtab .hm{display:inline-block;width:11px;height:14px;border-radius:2px;margin-right:2px;background:var(--line)}
 .habtab .hm.y{background:var(--good)} .habtab .hm.n{background:var(--crit)} .habtab .hm.p{background:var(--warn)} .habtab .hm.u{background:transparent;border:1px dashed var(--line)} .habtab .hm.na{background:var(--paper);opacity:.5}
@@ -474,19 +478,9 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
 
   <!-- HÁBITOS -->
   <section class="panel" id="p-habitos" hidden>
-    <div class="sec-head"><h2>Hábitos</h2><span class="eyebrow" id="habLimite"></span></div>
-
-    <div class="log">
-      <div class="sec-head" style="margin:0"><h3 id="habDiaTit">Marcar hoje</h3><div class="seg" id="habDias" role="group" aria-label="Dia"></div></div>
-      <div id="habHoje" style="display:grid;gap:14px"></div>
-      <p class="muted" style="font-size:.8rem">Toque para alternar: ? → ✓ → ✗ → ~. Salva na hora. Dá para corrigir até 7 dias para trás.</p>
-    </div>
-
-    <div class="log">
-      <div class="sec-head" style="margin:0"><h3>Histórico · 30 dias</h3><span class="eyebrow">nunca falhe duas vezes</span></div>
-      <div class="tbl"><table class="habtab" id="habTab"></table></div>
-      <p class="muted" style="font-size:.8rem">Taxa = ✓ ÷ dias em que o hábito se aplica nos últimos 30 dias (dia sem registro conta como não feito; ~ vale meio). Consolida com <b>≥ 90%</b> depois de 30 dias de acompanhamento. <span class="late">⚠ 2×</span> = duas falhas seguidas. Quadrados apagados = dia em que o hábito não se aplica.</p>
-    </div>
+    <div class="sec-head"><h2>Registro de hábitos</h2><span class="eyebrow" id="habLimite"></span></div>
+    <div class="hgrid"><table id="htable"></table></div>
+    <p class="muted" style="font-size:.85rem" id="habMsgTab">✓ feito · ✗ não feito · ~ parcial · ? não registrado · – não se aplica no dia. <b>Toque na célula para marcar</b> (últimos 7 dias). Taxa = ✓ ÷ dias aplicáveis nos últimos 30 (? conta como não feito) · consolida com ≥ 90% após 30 dias · <span class="late">⚠ 2×</span> = duas falhas seguidas.</p>
 
     <div class="log">
       <div class="sec-head" style="margin:0"><h3>🏅 Hábitos consolidados</h3><span class="eyebrow">check semanal: manteve?</span></div>
@@ -545,7 +539,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 02/10 · hábitos no Firebase</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 02/10 · quadro de hábitos</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
@@ -961,33 +955,25 @@ async function marcar(k,id){
   const novo={...(DIAS[k]||{}),[id]:v||null};
   DIAS[k]=novo; renderHab(); // resposta imediata na tela
   try{ await setDoc(doc(db,"users",UID,"dias",k),{[id]:v||null, notaDia:notaDia(novo,k).nota},{merge:true}); }
-  catch(e){ $("#habDiaTit").textContent="Não salvou: "+e.code; }
+  catch(e){ $("#habMsgTab").textContent="Não salvou: "+e.code+". Verifique a conexão."; }
 }
 function renderHab(){
   const hoje=key(today0()); if(!HSEL) HSEL=hoje;
   const ativos=hAtivos(), conta=ativos.filter(h=>!h.auto).length;
   $("#habLimite").innerHTML = `em controle <b class="num" style="color:${conta>LIMITE_HAB?"var(--crit)":"inherit"}">${conta}</b> / limite ${LIMITE_HAB}${conta>LIMITE_HAB?` · pause ou consolide ${conta-LIMITE_HAB}`:""}`;
-  // seletor de dia (últimos 7)
-  const ds=[]; for(let i=6;i>=0;i--) ds.push(key(new Date(today0().getTime()-i*DAY)));
-  $("#habDias").innerHTML = ds.map(k=>`<button type="button" data-k="${k}" aria-pressed="${k===HSEL}">${k===hoje?"hoje":["dom","seg","ter","qua","qui","sex","sáb"][new Date(k+"T12:00:00").getDay()]+" "+lbl(k).slice(0,2)}</button>`).join("");
-  $("#habDiaTit").textContent = HSEL===hoje ? "Marcar hoje" : `Marcar ${lbl(HSEL)}`;
-  // marcação do dia selecionado, por grupo
-  $("#habHoje").innerHTML = GRUPOS.map(([g,t])=>{ const hs=ativos.filter(h=>(h.grupo||"outros")===g && aplica(h,HSEL)); if(!hs.length) return "";
-    return `<div class="habgrp"><span class="eyebrow">${t}</span><div class="toggles">${hs.map(h=>{ const v=DIAS[HSEL]?.[h.id]||"";
-      return `<button type="button" class="tg hb" data-id="${h.id}" data-v="${v}" ${h.auto?"disabled title='Marcado automaticamente (Obsidian ou planilha)'":""}><span>${h.nome}${h.auto?" 🤖":""}</span><span class="st">${SYM[v]}</span></button>`; }).join("")}</div></div>`; }).join("");
-  // histórico 30 dias
-  const d30=[]; for(let i=29;i>=0;i--) d30.push(key(new Date(today0().getTime()-i*DAY)));
+  // Quadro como antes: hábitos × últimos 10 dias, com clique na célula (últimos 7 dias) + taxa, sequência e alerta
+  const days=[]; for(let i=9;i>=0;i--) days.push(key(new Date(today0().getTime()-i*DAY)));
   const lim7=key(new Date(today0().getTime()-6*DAY));
-  $("#habTab").innerHTML = `<thead><tr><th>Hábito</th><th>30 dias</th><th class="r">Taxa</th><th class="r">Seq.</th><th></th></tr></thead><tbody>`+
-    GRUPOS.map(([g,t])=>{ const hs=ativos.filter(h=>(h.grupo||"outros")===g); if(!hs.length) return "";
-      return `<tr><td colspan="5" class="eyebrow" style="padding-top:12px">${t}</td></tr>`+hs.map(h=>{ const s=habStats(h);
-        const strip=d30.map(k=>{ if(!aplica(h,k)) return `<span class="hm na" title="${lbl(k)}: não se aplica"></span>`;
-          const v=DIAS[k]?.[h.id]; const c=v==="y"?"y":v==="n"?"n":v==="p"?"p":"u"; const ed=k>=lim7&&!h.auto;
-          return `<span class="hm ${c}${ed?" ed":""}${k===hoje?" hj":""}" ${ed?`data-k="${k}" data-id="${h.id}" role="button" tabindex="0"`:""} title="${lbl(k)}: ${SYM[v||""]}"></span>`; }).join("");
-        const tx=Math.round(s.taxa*100), cor=tx>=90?"var(--good)":tx>=70?"var(--warn)":"var(--crit)";
-        return `<tr><td>${h.nome}<br><span class="kind">${freqTxt(h)} · peso ${h.peso||0}${h.tatica?` · ${h.tatica}`:""} · ${Math.min(s.acomp,30)}/30 dias</span></td>
-          <td class="strip">${strip}</td><td class="r num" style="color:${s.ap?cor:"var(--muted)"}">${s.ap?tx+"%":"—"}<br><span class="kind">${String(s.ok).replace(".",",")}/${s.ap}</span></td>
-          <td class="r num">${s.seq}</td><td>${s.duas?`<span class="chip crit">⚠ 2×</span>`:""}${s.pronto?`<span class="chip good">pronto</span>`:""}</td></tr>`; }).join(""); }).join("")+`</tbody>`;
+  const SIM2={y:["y","✓"],n:["n","✗"],p:["p","~"]};
+  const ordG=Object.fromEntries(GRUPOS.map(([g],i)=>[g,i]));
+  const linhas=ativos.slice().sort((a,b)=>(ordG[a.grupo||"outros"]-ordG[b.grupo||"outros"])||((a.ordem??99)-(b.ordem??99)));
+  $("#htable").innerHTML=`<thead><tr><th>Hábito</th>${days.map(k=>`<th class="c${k===hoje?" hj":""}">${lbl(k)}</th>`).join("")}<th class="r">Taxa 30d</th><th class="r">Seq.</th><th></th></tr></thead><tbody>${
+    linhas.map(h=>{ const s=habStats(h), tx=Math.round(s.taxa*100), cor=tx>=90?"var(--good)":tx>=70?"var(--warn)":"var(--crit)";
+      const cel=days.map(k=>{ const hj=k===hoje?" hj":"";
+        if(!aplica(h,k)) return `<td class="c${hj}"><span class="mk na" title="não se aplica">–</span></td>`;
+        const v=DIAS[k]?.[h.id], [c,t]=SIM2[v]||["u","?"], ed=k>=lim7&&!h.auto;
+        return `<td class="c${hj}"><span class="mk ${c}${ed?" ed":""}" ${ed?`data-k="${k}" data-id="${h.id}" role="button" tabindex="0" title="${lbl(k)}: toque para alterar"`:""}>${t}</span></td>`; }).join("");
+      return `<tr><td>${h.nome}${h.auto?` <span title="marcado automaticamente">🤖</span>`:""}</td>${cel}<td class="r num" style="color:${s.ap?cor:"var(--muted)"}">${s.ap?tx+"%":"—"}</td><td class="r num">${s.seq}</td><td>${s.duas?`<span class="chip crit">⚠ 2×</span>`:""}${s.pronto?`<span class="chip good">consolidando</span>`:""}</td></tr>`; }).join("")}</tbody>`;
   // consolidação automática: 30 dias de acompanhamento e taxa ≥ 90%
   ativos.filter(h=>!h.auto && !KONS.has(h.id)).forEach(h=>{ const s=habStats(h); if(s.pronto && UID){ KONS.add(h.id);
     setDoc(doc(db,"users",UID,"habitos",h.id),{status:"consolidado",consolidadoEm:hoje,taxaConsolidacao:Math.round(s.taxa*100),checks:{}},{merge:true}); } });
@@ -1006,9 +992,8 @@ function renderHab(){
     <td class="r" style="white-space:nowrap"><button type="button" class="btn" data-editar="${h.id}" style="padding:4px 10px">Editar</button> ${h.status==="consolidado"?"":`<button type="button" class="btn" data-pausar="${h.id}" style="padding:4px 10px">${h.status==="pausado"?"Ativar":"Pausar"}</button>`}</td></tr>`).join("");
 }
 // eventos da aba Hábitos
-$("#habDias").addEventListener("click",e=>{ const b=e.target.closest("[data-k]"); if(!b) return; HSEL=b.dataset.k; renderHab(); });
-$("#habHoje").addEventListener("click",e=>{ const b=e.target.closest(".hb"); if(!b||b.disabled) return; marcar(HSEL,b.dataset.id); });
-$("#habTab").addEventListener("click",e=>{ const s=e.target.closest(".hm.ed"); if(s) marcar(s.dataset.k,s.dataset.id); });
+$("#htable").addEventListener("click",e=>{ const s=e.target.closest(".mk.ed"); if(s) marcar(s.dataset.k,s.dataset.id); });
+$("#htable").addEventListener("keydown",e=>{ const s=e.target.closest(".mk.ed"); if(s&&(e.key==="Enter"||e.key===" ")){ e.preventDefault(); marcar(s.dataset.k,s.dataset.id); } });
 $("#habCons").addEventListener("click",async e=>{
   const w=e.target.closest("[data-sem]"); const r=e.target.closest("[data-reincluir]"); if(!UID) return;
   if(w){ const h=HABITOS.find(x=>x.id===w.dataset.hab); const at=(h.checks||{})[w.dataset.sem]||""; const nv=at===""?"y":at==="y"?"n":"";
