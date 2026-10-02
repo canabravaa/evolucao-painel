@@ -843,7 +843,8 @@ function renderAtv(){
   const base0 = pts.length ? pts[0].v : 0;
   $("#atvChart").innerHTML = chart("Abertas × concluídas","linha cheia: abertas · tracejada: concluídas",pts,0,Math.ceil(mx/5)*5,base0??0,0,v=>Math.round(v),"").replace('<div class="chart">','<div>');
   // ---- Projetos: avanço medido pelas ações concluídas
-  const PJ=(ATV.projetos||[]).filter(p=>abas.includes(p.area) && p.status!=="Concluído");
+  // só projetos cadastrados na aba Projetos (nomes sem cadastro aparecem como alerta na aba Projetos)
+  const PJ=(ATV.projetos||[]).filter(p=>abas.includes(p.area) && !["Concluído","Sem cadastro"].includes(p.status));
   const ativos=(ATV.projetos||[]).filter(p=>p.status==="Ativo").length, sug=(ATV.projetos||[]).filter(p=>p.status==="Sugerido").length;
   $("#prjWip").innerHTML = `ativos <b class="num" style="color:${ativos>5?"var(--crit)":"inherit"}">${ativos}</b> / limite 5${sug?` · ${sug} sugeridos para confirmar na planilha`:""}`;
   const ordem={Ativo:0,Sugerido:1,"Sem cadastro":2,Pausado:3};
@@ -888,12 +889,13 @@ function prjCard(p){
 }
 function renderPrjTab(){
   if(!ATV) return;
-  const all=(ATV.projetos||[]).filter(p=>p.status!=="Concluído");
+  const todos=(ATV.projetos||[]).filter(p=>p.status!=="Concluído");
+  const all=todos.filter(p=>p.status!=="Sem cadastro"), semCadL=todos.filter(p=>p.status==="Sem cadastro");
   const ordem={Ativo:0,Sugerido:1,"Sem cadastro":2,Pausado:3};
   all.sort((a,b)=>(ordem[a.status]??9)-(ordem[b.status]??9) || b.diasSemAvanco-a.diasSemAvanco);
   const ativos=all.filter(p=>p.status==="Ativo");
   const sem7=ITENS.filter(i=>i.concluidoEm && i.projeto && (today0()-new Date(i.concluidoEm+"T00:00:00"))/DAY<7).length;
-  const parados=ativos.filter(p=>prjSinais(p).parado), semProx=all.filter(p=>prjSinais(p).semProx), semCad=all.filter(p=>p.status==="Sem cadastro");
+  const parados=ativos.filter(p=>prjSinais(p).parado), semProx=all.filter(p=>prjSinais(p).semProx), semCad=semCadL;
   $("#pjKpis").innerHTML=[
     ["Projetos ativos",`${ativos.length}<small>/ 5</small>`,ativos.length>5?"acima do limite":"dentro do limite",ativos.length>5?"down":"up"],
     ["Ações abertas",ativos.reduce((a,p)=>a+p.abertas,0),"nos projetos ativos","flat"],
