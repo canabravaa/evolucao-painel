@@ -130,6 +130,15 @@ nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:v
 .brkstats div{display:grid}
 .brkstats .v{font-family:var(--f-display);font-weight:700;font-size:1.8rem;line-height:1}
 .brkstats .v small{font-size:.5em;color:var(--muted);margin-left:2px}
+#itable td.c{text-align:center;padding:5px 4px}
+#itable .iv{display:inline-block;min-width:44px;padding:4px 6px;border-radius:4px;font-family:var(--f-mono);font-size:.8rem;cursor:pointer;color:var(--muted);border:1px dashed var(--line)}
+#itable .iv.ig,#itable .iv.iw,#itable .iv.ic{border:0;color:var(--paper);font-weight:600}
+#itable .iv.ig{background:var(--good)} #itable .iv.iw{background:var(--warn)} #itable .iv.ic{background:var(--crit)}
+#itable .iv:hover{outline:2px solid var(--accent);outline-offset:1px}
+#itable .iin{width:76px;font:inherit;font-family:var(--f-mono);font-size:.8rem;padding:4px;border:2px solid var(--accent);border-radius:4px;background:var(--paper);color:var(--ink)}
+#itable .gr td{padding-top:14px}
+.tbsel{font:inherit;font-family:var(--f-mono);font-size:.82rem;padding:5px 6px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink)}
+.hgrid table#itable{min-width:720px}
 #htable .mk.ed{cursor:pointer} #htable .mk.ed:hover{outline:2px solid var(--accent);outline-offset:1px}
 #htable .mk.na{color:var(--muted);opacity:.45}
 #htable td.hj,#htable th.hj{background:var(--accent-soft)}
@@ -295,11 +304,11 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
 
   <nav class="tabs" aria-label="Seções"><div class="tabs-in" role="tablist" id="tablist">
     <button role="tab" data-t="hoje" aria-selected="true">Hoje</button>
-    <button role="tab" data-t="projetos" aria-selected="false">Projetos</button>
-    <button role="tab" data-t="registrar" aria-selected="false">Registrar</button>
+    <button role="tab" data-t="atividades" aria-selected="false">Atividades</button>
+    <button role="tab" data-t="indicadores" aria-selected="false">Indicadores</button>
+    <button role="tab" data-t="habitos" aria-selected="false">Hábitos</button>
     <button role="tab" data-t="foco" aria-selected="false">Foco</button>
     <button role="tab" data-t="ciclo" aria-selected="false">Ciclo</button>
-    <button role="tab" data-t="habitos" aria-selected="false">Hábitos</button>
     <button role="tab" data-t="metodos" aria-selected="false">Métodos</button>
   </div></nav>
 
@@ -372,9 +381,31 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <!-- PROJETOS -->
-  <section class="panel" id="p-projetos" hidden>
-    <div class="sec-head"><h2>Projetos</h2><span class="eyebrow">GTD · avanço = ações concluídas · limite de 5 ativos</span></div>
+  <!-- ATIVIDADES (Big 3 · Por projeto · Lista) — fonte: planilha Atividades FY26 -->
+  <section class="panel" id="p-atividades" hidden>
+    <div class="sec-head"><h2>Atividades</h2>
+      <div class="seg" id="atvVis" role="group" aria-label="Visão">
+        <button type="button" data-v="big3" aria-pressed="true">⭐ Big 3</button><button type="button" data-v="projetos" aria-pressed="false">📁 Por projeto</button><button type="button" data-v="lista" aria-pressed="false">☰ Lista</button>
+      </div></div>
+    <p class="note">Fonte única: planilha <strong>Atividades FY26</strong>. Para incluir, mudar status ou marcar BIG 3 = SIM, edite a planilha (o painel atualiza sozinho em ~15 s). Aqui ficam o tempo-limite e o timer.</p>
+
+    <div id="atvV-big3" style="display:grid;gap:14px">
+      <div class="sec-head" style="margin:0"><h3 id="ab3Tit">Big 3</h3><div class="row"><button type="button" class="btn" id="ab3Prev">←</button><button type="button" class="btn" id="ab3Hoje">Hoje</button><button type="button" class="btn" id="ab3Next">→</button></div></div>
+      <div class="b3cards">
+        <div class="log"><h3>💼 Trabalho <span class="kind" id="ab3CntT"></span></h3><div id="ab3T" style="display:grid;gap:8px"></div></div>
+        <div class="log"><h3>🏠 Pessoal <span class="kind" id="ab3CntP"></span></h3><div id="ab3P" style="display:grid;gap:8px"></div></div>
+      </div>
+    </div>
+
+    <div id="atvV-lista" hidden style="display:grid;gap:12px">
+      <div class="row" style="justify-content:flex-start;gap:12px">
+        <div class="seg" id="alFiltro"><button type="button" data-a="Todas" aria-pressed="true">Todas</button><button type="button" data-a="Trabalho" aria-pressed="false">💼 Trabalho</button><button type="button" data-a="Pessoal" aria-pressed="false">🏠 Pessoal</button></div>
+        <label class="muted" style="font-size:.85rem;display:flex;gap:6px;align-items:center"><input type="checkbox" id="alConc"> mostrar concluídas</label>
+      </div>
+      <div class="tbl"><table><thead><tr><th>Prazo</th><th>Atividade</th><th>Projeto</th><th>Resp.</th><th>Status</th></tr></thead><tbody id="alLista"></tbody></table></div>
+    </div>
+
+    <div id="atvV-projetos" hidden style="display:grid;gap:24px">
     <div class="kpis five" id="pjKpis"></div>
     <div class="atv-cols">
       <div class="log"><h3>Ritmo: ações concluídas por dia</h3><div id="pjChart"></div><p class="muted" style="font-size:.78rem">A contagem começou em 01/10: o histórico anterior não tem data de conclusão.</p></div>
@@ -384,47 +415,31 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     <div><h3 style="margin-bottom:10px">🏠 Pessoal</h3><div class="prjgrid" id="pjPess"></div></div>
     <div class="log" id="pjOrfas" hidden><h3>🔎 Ações abertas há mais de 14 dias sem projeto</h3><p class="muted" style="font-size:.85rem">Ou viram projeto (com resultado esperado), ou são reescritas como uma próxima ação concreta.</p><div class="tbl"><table><tbody id="pjOrfasList"></tbody></table></div></div>
     <p class="note">Regras: cada linha da planilha é uma próxima ação (verbo + entrega, fecha em até 1 dia). 7 dias sem ação concluída = projeto parado. Projeto ativo sem ação aberta = defina a próxima ação. Detalhes no Obsidian: Projetos - Regras.</p>
+    </div>
   </section>
 
-  <!-- REGISTRAR -->
-  <section class="panel" id="p-registrar" hidden>
-    <div class="sec-head"><h2>Registrar o dia</h2><span class="eyebrow">toque para alternar: ? → ✓ → ✗ → ~</span></div>
-    <form class="form" id="dayForm" autocomplete="off">
-      <div class="fields" style="max-width:360px">
-        <div class="field"><label for="fDate">Data</label><input type="date" id="fDate"></div>
-      </div>
-      <div class="fgroup"><h3>🌅 Manhã</h3><div class="toggles" data-group="manha"></div>
+  <!-- INDICADORES (resultado · 4DX) -->
+  <section class="panel" id="p-indicadores" hidden>
+    <div class="sec-head"><h2>Indicadores</h2><span class="eyebrow">resultado (4DX) · hábitos = esforço · indicadores = efeito</span></div>
+    <div class="hgrid"><table id="itable"></table></div>
+    <p class="muted" style="font-size:.85rem" id="indMsg">Toque na célula para digitar o valor (Enter salva, Esc cancela; apagar o número limpa). Cor pela meta: verde no alvo · amarelo perto · vermelho fora. <b>Horário de deitar</b> = noite do próprio dia · <b>horas de sono</b> = noite anterior (acordou neste dia).</p>
+    <div class="log">
+      <h3>Gerenciar indicadores</h3>
+      <form id="indForm" class="form" autocomplete="off" style="gap:10px">
+        <input type="hidden" id="indId">
         <div class="fields">
-          <div class="field"><label for="cel1">Primeiro uso do celular</label><input type="time" id="cel1"></div>
-          <div class="field"><label for="hrvV">HRV (valor)</label><input type="number" id="hrvV" inputmode="decimal" step="0.1"></div>
-        </div></div>
-      <div class="fgroup"><h3>💼 Trabalho · Big 3</h3><div class="toggles" data-group="trabalho"></div>
-        <div class="b3list" id="b3list"></div>
-        <p class="muted" style="font-size:.85rem">Concluídas: <b class="num" id="b3count">0</b> de 3 · toque no quadrado para marcar ✓ feita, ~ parcial ou ✗ não feita</p>
-        <p class="jump" id="b3jump" hidden><button type="button" class="btn" id="btnJump"></button></p>
-        <p class="note" id="b3src" hidden>📋 Big 3 vindo da planilha <strong>Atividades FY26</strong> (coluna BIG 3 = SIM). Para trocar um item, altere a planilha. Aqui você marca o status e o tempo-limite.</p>
-      </div>
-      <div class="fgroup"><h3>🏠 Pessoal · Big 3</h3>
-        <div class="b3list" id="b3listP"></div>
-        <p class="muted" style="font-size:.85rem">Concluídas: <b class="num" id="b3countP">0</b> de 3</p>
-      </div>
-      <div class="fgroup"><h3>🥗 Alimentação</h3><div class="toggles" data-group="alimentacao"></div>
-        <p class="muted" style="font-size:.8rem">✓ seguiu o cardápio · ~ seguiu em parte · ✗ fora do plano. Use a observação para dizer qual refeição saiu do plano.</p></div>
-      <div class="fgroup"><h3>🌙 Noite deste dia</h3><div class="toggles" data-group="noite"></div>
-        <div class="fields">
-          <div class="field"><label for="pos21">Tela depois das 21h (min)</label><input id="pos21" type="number" min="0" inputmode="numeric"></div>
-        </div></div>
-      <div class="fgroup"><h3>📱 Celular (Tempo de Uso)</h3>
-        <div class="fields">
-          <div class="field"><label for="pegadas">Pegadas no dia</label><input id="pegadas" type="number" min="0" inputmode="numeric"></div>
-          <div class="field"><label for="social">X + Instagram (min)</label><input id="social" type="number" min="0" inputmode="numeric"></div>
-          <div class="field"><label for="tela">Tela total (min)</label><input id="tela" type="number" min="0" inputmode="numeric"></div>
-        </div></div>
-      <div class="fgroup"><h3>📅 Semana</h3><div class="toggles" data-group="semana"></div></div>
-      <div class="fgroup"><h3>✨ Outros hábitos</h3><div class="toggles" data-group="outros"></div></div>
-      <div class="fgroup"><div class="field"><label for="obs">Observação curta</label><textarea id="obs" rows="2"></textarea></div></div>
-      <div class="savebar"><span class="muted" id="saveMsg" style="font-size:.85rem"></span><button class="btn primary" type="submit" id="btnSave">Salvar o dia</button></div>
-    </form>
+          <div class="field" style="grid-column:span 2"><label for="indNome">Indicador</label><input id="indNome" type="text" required placeholder="ex.: Peso corporal"></div>
+          <div class="field"><label for="indGrupo">Grupo</label><input id="indGrupo" type="text" placeholder="ex.: Saúde" list="indGrupos"><datalist id="indGrupos"></datalist></div>
+          <div class="field"><label for="indTipo">Tipo</label><select id="indTipo"><option value="numero">Número</option><option value="hora">Horário (HH:MM)</option></select></div>
+          <div class="field"><label for="indUn">Unidade</label><input id="indUn" type="text" placeholder="min, h, kg…"></div>
+          <div class="field"><label for="indSent">Melhor quando</label><select id="indSent"><option value="menor">menor</option><option value="maior">maior</option></select></div>
+          <div class="field"><label for="indMeta">Meta (verde)</label><input id="indMeta" type="text" placeholder="ex.: 90 ou 22:00"></div>
+          <div class="field"><label for="indAm">Limite do amarelo</label><input id="indAm" type="text" placeholder="ex.: 110 ou 22:30"></div>
+        </div>
+        <div class="row" style="justify-content:flex-start"><button class="btn primary" type="submit" id="indSalvar">Incluir indicador</button><button class="btn" type="button" id="indCancelar" hidden>Cancelar edição</button><span class="muted" id="indFMsg" style="align-self:center;font-size:.85rem"></span></div>
+      </form>
+      <div class="tbl"><table><thead><tr><th>Indicador</th><th>Grupo</th><th>Tipo</th><th>Meta</th><th>Amarelo</th><th></th></tr></thead><tbody id="indLista"></tbody></table></div>
+    </div>
   </section>
 
   <!-- FOCO -->
@@ -539,7 +554,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 02/10 · gerenciar hábitos</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 02/10 · atividades + indicadores</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
@@ -571,6 +586,26 @@ const SEED_HAB=[
 ].map(([id,nome,grupo,dias,peso,tatica,auto],i)=>({id,nome,grupo,dias,peso,tatica:tatica||null,auto:!!auto,status:"ativo",ordem:i,
   criadoEm: ["dieta","agua"].includes(id) ? "2026-10-01" : "2026-09-29"})); // alimentação entrou no controle em 01/10
 let HABITOS = SEED_HAB.slice(); // substituído pela tabela do Firebase assim que ela carrega
+// ================= INDICADORES (resultado): tabela users/{uid}/indicadores =================
+// Valor gravado no dia (dias/{data}.{id}). tipo: numero | hora (HH:MM). sentido: menor | maior é melhor.
+// meta = verde; am = limite do amarelo. Horário de deitar = noite do dia; horas de sono = noite anterior.
+const SEED_IND=[
+  ["pegadas","Pegadas no celular","📱 Celular","numero","","menor",90,110],
+  ["tela","Tela total","📱 Celular","numero","min","menor",180,240],
+  ["social","X + Instagram","📱 Celular","numero","min","menor",30,45],
+  ["pos21","Tela depois das 21h","📱 Celular","numero","min","menor",0,15],
+  ["cel1","1º uso do celular","📱 Celular","hora","","maior","05:10","04:55"],
+  ["hrvV","HRV","❤️ Saúde","numero","","maior",65,55],
+  ["deitar","Horário de deitar","😴 Sono","hora","","menor","22:00","22:30"],
+  ["sonoH","Horas de sono","😴 Sono","numero","h","maior",7,6.5],
+  ["enM","Energia · manhã","⚡ Energia e estresse","numero","1–5","maior",4,3],
+  ["enT","Energia · tarde","⚡ Energia e estresse","numero","1–5","maior",4,3],
+  ["enN","Energia · noite","⚡ Energia e estresse","numero","1–5","maior",4,3],
+  ["esM","Estresse · manhã","⚡ Energia e estresse","numero","1–5","menor",2,3],
+  ["esT","Estresse · tarde","⚡ Energia e estresse","numero","1–5","menor",2,3],
+  ["esN","Estresse · noite","⚡ Energia e estresse","numero","1–5","menor",2,3],
+].map(([id,nome,grupo,tipo,un,sentido,meta,am],i)=>({id,nome,grupo,tipo,un,sentido,meta,am,ordem:i}));
+let INDS = SEED_IND.slice();
 const hAtivos = () => HABITOS.filter(h=>h.status==="ativo");
 const aplica = (h,k) => (h.dias||D7).includes(new Date(k+"T12:00:00").getDay());
 const freqTxt = h => { const d=(h.dias||D7).slice().sort(); return d.length===7?"diário":d.join()==="1,2,3,4,5"?"dias úteis":d.map(x=>["dom","seg","ter","qua","qui","sex","sáb"][x]).join(" · "); };
@@ -637,7 +672,6 @@ onAuthStateChanged(auth, async user => {
     }
     DIAS = {}; snap.forEach(d => DIAS[d.id] = d.data());
     renderAll();
-    if (!formDirty) loadForm($("#fDate").value);
   }, e => { $("#sync").className = "sync err"; console.error(e); });
   onSnapshot(query(collection(db,"users",UID,"foco"), orderBy("quando","desc"), limit(60)), snap => { FOCO = snap.docs.map(d=>d.data()); drawLog(); renderAll(); });
   onSnapshot(query(collection(db,"users",UID,"breaks"), where("dia","==",key(today0()))), snap => { BRK = snap.docs.map(d=>({id:d.id,...d.data()})); renderBreak(); });
@@ -650,9 +684,19 @@ onAuthStateChanged(auth, async user => {
       SEED_HAB.forEach(h=>b.set(doc(db,"users",UID,"habitos",h.id),h)); await b.commit(); return;
     }
     HABITOS = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ordem??99)-(b.ordem??99));
-    buildToggles(); if(!formDirty) loadForm($("#fDate").value); renderAll();
+    renderAll();
   });
-  onSnapshot(collection(db,"users",UID,"atividades_itens"), snap => { ITENS = snap.docs.map(d=>d.data()); renderPrjTab(); });
+  // Tabela de indicadores (resultado): na primeira vez grava os indicadores iniciais
+  let indSemeado=false;
+  onSnapshot(collection(db,"users",UID,"indicadores"), async snap => {
+    if (snap.empty && !indSemeado) {
+      indSemeado=true; const b=writeBatch(db);
+      SEED_IND.forEach(x=>b.set(doc(db,"users",UID,"indicadores",x.id),x)); await b.commit(); return;
+    }
+    INDS = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ordem??99)-(b.ordem??99));
+    renderInd();
+  });
+  onSnapshot(collection(db,"users",UID,"atividades_itens"), snap => { ITENS = snap.docs.map(d=>d.data()); renderPrjTab(); renderAtvTab(); });
   onSnapshot(collection(db,"users",UID,"atividades_hist"), snap => { ATVH = snap.docs.map(d=>({k:d.id,...d.data()})).sort((a,b)=>a.k<b.k?-1:1); renderAtv(); });
   const w = await getDoc(doc(db,"users",UID,"roda","ciclo1"));
   WHEEL = w.exists() ? w.data() : { v:[5,8,5,6,5,5,7,3], ex:true };
@@ -794,8 +838,9 @@ function renderAll(){
   $("#goals").innerHTML=GOALS.map((g,i)=>`<article class="goal"><div class="goal-top"><h3>${g.icon} Meta ${i+1} · ${g.name}</h3><span class="eyebrow">${g.tactics.reduce((a,t)=>a+t[2],0)} táticas / semana</span></div><p class="muted">${g.target}</p><div class="cols"><div class="tbl"><table><thead><tr><th>Indicador</th><th class="r">Base</th><th class="r">Atual</th><th class="r">Meta</th></tr></thead><tbody>${IND[i].map(x=>`<tr><td>${x[0]}<br><span class="kind">${x[1]}</span></td><td class="r num">${x[2]}</td><td class="r num">${x[3]}</td><td class="r num">${x[4]}</td></tr>`).join("")}</tbody></table></div><div class="tbl"><table><thead><tr><th>Tática</th><th class="r">Por semana</th></tr></thead><tbody>${g.tactics.map(t=>`<tr><td><span class="kind">${t[0]}</span> ${t[1]}</td><td class="r num">${t[2]}×</td></tr>`).join("")}</tbody></table></div></div></article>`).join("");
   $("#miles").innerHTML=MILES.map(m=>`<li class="${m[0]<cw?"done":""}"><span class="w">S${m[0]}</span><span class="num muted" style="font-size:.85rem">${m[1]}</span><span>${m[2]}</span></li>`).join("");
 
-  // Hábitos (aba própria)
+  // Hábitos e indicadores (abas próprias; o quadro de indicadores não é redesenhado durante uma edição)
   renderHab();
+  if(!INDEX) renderInd();
 
   // Nota do dia (card principal)
   const kHoje=key(t0), nh=notaDia(DIAS[kHoje],kHoje);
@@ -832,7 +877,7 @@ function renderAll(){
   if(typeof dH.social!=="number") ganhos.push({g:5*escN,l:"X + Instagram ≤ 30 min",h:""});
   ganhos.sort((a,b)=>b.g-a.g);
   $("#gainList").innerHTML = ganhos.length ? ganhos.slice(0,6).map(x=>`<li><button type="button" data-go="registrar"><span class="pts">+${String(Math.round(x.g*10)/10).replace(".",",")}</span><span>${x.l}</span><span class="hr">${x.h}</span></button></li>`).join("") : `<li class="muted" style="font-size:.88rem">Nada pendente: dia completo. 🎉</li>`;
-  document.querySelectorAll("#gainList [data-go]").forEach(b=>b.onclick=()=>show("registrar"));
+  document.querySelectorAll("#gainList [data-go]").forEach(b=>b.onclick=()=>show("habitos"));
 
   // Big 3 em destaque: dia de referência (depois das 18h, amanhã — mesma regra da planilha)
   const agora=new Date(), refD=new Date(t0.getTime()+(agora.getHours()>=18?DAY:0)), refK=key(refD), refDia=DIAS[refK]||{};
@@ -850,10 +895,7 @@ function renderAll(){
   $("#b3HojeT").innerHTML=b3li(refDia.big3,refDia.big3St,refDia.big3Min,"💼 ");
   $("#b3HojeP").innerHTML=b3li(refDia.big3P,refDia.big3PSt,refDia.big3PMin,"🏠 ");
   // Atalho na aba Registrar quando o Big 3 da planilha já está no dia seguinte
-  const selK=$("#fDate").value;
-  $("#b3jump").hidden = !(ehAmanha && selK!==refK && DIAS[refK]?.big3Fonte==="planilha");
-  $("#btnJump").textContent = `📋 Big 3 da planilha já está em ${lbl(refK)}: abrir esse dia`;
-  $("#btnJump").onclick = () => { $("#fDate").value=refK; formDirty=false; loadForm(refK); renderAll(); };
+  renderAtvTab();
 
   // Foco: tarefas do Big 3 de hoje
   const hojeD=DIAS[key(t0)]||{};
@@ -919,7 +961,7 @@ function renderAtv(){
       <span class="pbar" style="height:8px;border-radius:4px;background:var(--line);overflow:hidden;display:flex"><i style="display:block;width:${pc}%;background:var(--good)"></i><i style="display:block;width:${pa}%;background:var(--crit)"></i></span>
       <span class="chips">${s.semProx?`<span class="chip crit">sem próxima ação</span>`:""}${s.parado?`<span class="chip crit">parado ${p.diasSemAvanco}d</span>`:""}${p.semana?`<span class="chip good">+${p.semana} na semana</span>`:""}<span class="chip">${p.concluidas}/${p.total}</span></span></div>`;}).join("") : `<span class="muted">Nenhum projeto nesta visão.</span>`)
     + `<p style="margin-top:8px"><button type="button" class="btn" id="goPrj">Ver projetos em detalhe →</button></p>`;
-  $("#goPrj").onclick=()=>show("projetos");
+  $("#goPrj").onclick=()=>{ atvVisao("projetos"); show("atividades"); };
   const orf=(ATV.semProjeto||[]).filter(x=>abas.includes(x.aba));
   $("#prjOrfas").hidden = true;
   renderPrjTab();
@@ -1037,6 +1079,127 @@ $("#habForm").addEventListener("submit",async e=>{
   catch(err){ $("#habMsg").textContent="Não salvou: "+err.code; }
 });
 
+// ================= INDICADORES (aba) =================
+let INDEX = null, INDEXCL = null; // célula em edição · indicador aguardando confirmação de exclusão
+// horário → minutos; para metas de noite (≥ 18h), horários de madrugada contam como depois da meia-noite
+const minInd = (x,v) => { const m=toMin(v); if(m==null) return null; return (x.tipo==="hora" && toMin(String(x.meta))>=1080 && m<720) ? m+1440 : m; };
+const numInd = (x,v) => v==null||v==="" ? null : x.tipo==="hora" ? minInd(x,v) : Number(v);
+function corInd(x,v){
+  const n=numInd(x,v); if(n==null||isNaN(n)) return "";
+  const meta=x.tipo==="hora"?minInd(x,x.meta):Number(x.meta), am=x.tipo==="hora"?minInd(x,x.am):Number(x.am);
+  if(x.sentido==="menor") return n<=meta?"ig":(am!=null&&!isNaN(am)&&n<=am)?"iw":"ic";
+  return n>=meta?"ig":(am!=null&&!isNaN(am)&&n>=am)?"iw":"ic";
+}
+const fmtMin = m => m ? (m>=60 ? `${Math.floor(m/60)}h${m%60?pad(m%60):""}` : `${m} min`) : "";
+const fmtInd = (x,v) => v==null||v==="" ? "" : x.tipo==="hora" ? v : String(Math.round(Number(v)*10)/10).replace(".",",");
+function mediaInd(x,de,ate){ const vs=[]; for(let i=de;i<=ate;i++){ const k=key(new Date(today0().getTime()-i*DAY)); const n=numInd(x,DIAS[k]?.[x.id]); if(n!=null&&!isNaN(n)) vs.push(n); } return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null; }
+const fmtMedia = (x,m) => m==null ? "—" : x.tipo==="hora" ? hm(((Math.round(m)%1440)+1440)%1440) : String(Math.round(m*10)/10).replace(".",",");
+function renderInd(){
+  if(!$("#itable")) return;
+  const hoje=key(today0()), days=[]; for(let i=9;i>=0;i--) days.push(key(new Date(today0().getTime()-i*DAY)));
+  const grupos=[...new Set(INDS.map(x=>x.grupo||"Outros"))];
+  $("#itable").innerHTML=`<thead><tr><th>Indicador</th>${days.map(k=>`<th class="c${k===hoje?" hj":""}">${lbl(k)}</th>`).join("")}<th class="r">Média 7d</th><th class="r">Tend.</th><th class="r">Meta</th></tr></thead><tbody>${
+    grupos.map(g=>`<tr class="gr"><td colspan="${days.length+4}" class="eyebrow">${g}</td></tr>`+INDS.filter(x=>(x.grupo||"Outros")===g).map(x=>{
+      const m7=mediaInd(x,0,6), mAnt=mediaInd(x,7,13);
+      let tend="—", tc="flat"; if(m7!=null&&mAnt!=null&&Math.abs(m7-mAnt)>0.05){ const sobe=m7>mAnt; tend=sobe?"▲":"▼"; tc=(sobe===(x.sentido==="maior"))?"up":"down"; }
+      const cels=days.map(k=>{ const v=DIAS[k]?.[x.id], ed=INDEX===`${k}|${x.id}`;
+        if(ed) return `<td class="c${k===hoje?" hj":""}"><input class="iin" data-k="${k}" data-id="${x.id}" type="${x.tipo==="hora"?"time":"number"}" ${x.tipo==="hora"?"":'step="any" inputmode="decimal"'} value="${v??""}" aria-label="${x.nome} em ${lbl(k)}"></td>`;
+        return `<td class="c${k===hoje?" hj":""}"><span class="iv ${corInd(x,v)}" data-k="${k}" data-id="${x.id}" role="button" tabindex="0" title="${lbl(k)}: toque para editar">${fmtInd(x,v)||"·"}</span></td>`; }).join("");
+      return `<tr><td>${x.nome}${x.un?` <span class="kind">${x.un}</span>`:""}</td>${cels}<td class="r num">${fmtMedia(x,m7)}</td><td class="r num ${tc}">${tend}</td><td class="r num kind">${x.sentido==="menor"?"≤":"≥"} ${fmtInd(x,x.meta)}</td></tr>`; }).join("")).join("")}</tbody>`;
+  const inp=$("#itable .iin"); if(inp){ inp.focus(); inp.select?.(); }
+  // lista de gerenciamento
+  $("#indGrupos").innerHTML=grupos.map(g=>`<option value="${g}">`).join("");
+  $("#indLista").innerHTML=INDS.map(x=>`<tr><td>${x.nome}${x.un?` <span class="kind">${x.un}</span>`:""}</td><td>${x.grupo||""}</td><td>${x.tipo==="hora"?"horário":"número"} · ${x.sentido} é melhor</td><td class="num">${fmtInd(x,x.meta)}</td><td class="num">${fmtInd(x,x.am)}</td>
+    <td class="r" style="white-space:nowrap"><button type="button" class="btn" data-ied="${x.id}" style="padding:4px 10px">Editar</button> <button type="button" class="btn" data-iex="${x.id}" style="padding:4px 10px;color:var(--crit)">${INDEXCL===x.id?"Confirmar exclusão":"Excluir"}</button></td></tr>`).join("");
+}
+async function salvarInd(k,id,bruto){
+  const x=INDS.find(i=>i.id===id); INDEX=null; if(!x||!UID){ renderInd(); return; }
+  let v=String(bruto??"").trim().replace(",",".");
+  if(v==="") v=null; else if(x.tipo==="numero"){ v=Number(v); if(isNaN(v)){ $("#indMsg").textContent="Valor inválido: use só números."; renderInd(); return; } }
+  else if(!/^\d{1,2}:\d{2}$/.test(v)){ $("#indMsg").textContent="Horário inválido: use HH:MM."; renderInd(); return; }
+  const upd={[id]:v};
+  // o horário de deitar marca sozinho o hábito "Deitou até 22:00"
+  if(id==="deitar" && v) upd.cama = minInd(x,v) <= minInd(x,"22:00") ? "y" : "n";
+  const novo={...(DIAS[k]||{}),...upd}; DIAS[k]=novo; renderInd();
+  try{ await setDoc(doc(db,"users",UID,"dias",k),{...upd, notaDia:notaDia(novo,k).nota},{merge:true}); }
+  catch(e){ $("#indMsg").textContent="Não salvou: "+e.code; }
+}
+$("#itable").addEventListener("click",e=>{ const c=e.target.closest(".iv"); if(!c) return; INDEX=`${c.dataset.k}|${c.dataset.id}`; renderInd(); });
+$("#itable").addEventListener("keydown",e=>{
+  const c=e.target.closest(".iv"); if(c&&(e.key==="Enter"||e.key===" ")){ e.preventDefault(); INDEX=`${c.dataset.k}|${c.dataset.id}`; renderInd(); return; }
+  const i=e.target.closest(".iin"); if(!i) return;
+  if(e.key==="Enter"){ e.preventDefault(); salvarInd(i.dataset.k,i.dataset.id,i.value); }
+  if(e.key==="Escape"){ INDEX=null; renderInd(); } });
+$("#itable").addEventListener("focusout",e=>{ const i=e.target.closest(".iin"); if(i && INDEX===`${i.dataset.k}|${i.dataset.id}`) salvarInd(i.dataset.k,i.dataset.id,i.value); });
+const formInd=x=>{ $("#indId").value=x?.id||""; $("#indNome").value=x?.nome||""; $("#indGrupo").value=x?.grupo||""; $("#indTipo").value=x?.tipo||"numero"; $("#indUn").value=x?.un||""; $("#indSent").value=x?.sentido||"menor"; $("#indMeta").value=x?.meta??""; $("#indAm").value=x?.am??"";
+  $("#indSalvar").textContent=x?"Salvar alterações":"Incluir indicador"; $("#indCancelar").hidden=!x; };
+$("#indCancelar").addEventListener("click",()=>{ formInd(null); $("#indFMsg").textContent=""; });
+$("#indLista").addEventListener("click",async e=>{
+  const ed=e.target.closest("[data-ied]"), ex=e.target.closest("[data-iex]"); if(!UID) return;
+  if(ed){ formInd(INDS.find(x=>x.id===ed.dataset.ied)); $("#indNome").focus(); }
+  if(ex){ const id=ex.dataset.iex, x=INDS.find(i=>i.id===id);
+    if(INDEXCL!==id){ INDEXCL=id; renderInd(); $("#indFMsg").textContent=`Toque em "Confirmar exclusão" para excluir "${x.nome}". Os valores já registrados ficam no histórico.`; setTimeout(()=>{ if(INDEXCL===id){ INDEXCL=null; renderInd(); } },6000); return; }
+    INDEXCL=null; try{ await deleteDoc(doc(db,"users",UID,"indicadores",id)); $("#indFMsg").textContent=`"${x.nome}" excluído.`; }catch(err){ $("#indFMsg").textContent="Não excluiu: "+err.code; } }
+});
+$("#indForm").addEventListener("submit",async e=>{
+  e.preventDefault(); if(!UID) return;
+  const nome=$("#indNome").value.trim(); if(!nome) return;
+  const tipo=$("#indTipo").value, conv=s=>{ s=String(s).trim().replace(",","."); if(s==="") return null; return tipo==="hora"?s:Number(s); };
+  const meta=conv($("#indMeta").value), am=conv($("#indAm").value);
+  if(meta==null || (tipo==="numero"&&isNaN(meta)) || (tipo==="hora"&&!/^\d{1,2}:\d{2}$/.test(meta))){ $("#indFMsg").textContent=tipo==="hora"?"Meta inválida: use HH:MM.":"Meta inválida: use um número."; return; }
+  let id=$("#indId").value; const novo=!id;
+  if(novo){ id="i_"+nome.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"").slice(0,24); if(INDS.some(x=>x.id===id)) id+="_"+Date.now().toString(36).slice(-4); }
+  const dados={nome,grupo:$("#indGrupo").value.trim()||"Outros",tipo,un:$("#indUn").value.trim(),sentido:$("#indSent").value,meta,am:(am==null||(tipo==="numero"&&isNaN(am)))?null:am};
+  if(novo) dados.ordem=INDS.length;
+  try{ await setDoc(doc(db,"users",UID,"indicadores",id),dados,{merge:true}); $("#indFMsg").textContent=novo?`"${nome}" incluído.`:"Alterações salvas."; formInd(null); }
+  catch(err){ $("#indFMsg").textContent="Não salvou: "+err.code; }
+});
+
+// ================= ATIVIDADES (aba): Big 3 · Por projeto · Lista =================
+let AB3 = null, ALF = "Todas";
+function atvVisao(v){ document.querySelectorAll("#atvVis button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===v))); ["big3","projetos","lista"].forEach(x=>$("#atvV-"+x).hidden = x!==v); }
+$("#atvVis").addEventListener("click",e=>{ const b=e.target.closest("[data-v]"); if(b) atvVisao(b.dataset.v); });
+$("#alFiltro").addEventListener("click",e=>{ const b=e.target.closest("[data-a]"); if(!b) return; ALF=b.dataset.a; $("#alFiltro").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); renderAtvTab(); });
+$("#alConc").addEventListener("change",()=>renderAtvTab());
+const refBig3 = () => { const t0=today0(); const amanha=key(new Date(t0.getTime()+DAY)); return (new Date().getHours()>=18 && DIAS[amanha]?.big3Fonte) ? amanha : key(t0); };
+$("#ab3Prev").addEventListener("click",()=>{ AB3=key(new Date(new Date((AB3||refBig3())+"T12:00:00").getTime()-DAY)); renderAtvTab(); });
+$("#ab3Next").addEventListener("click",()=>{ AB3=key(new Date(new Date((AB3||refBig3())+"T12:00:00").getTime()+DAY)); renderAtvTab(); });
+$("#ab3Hoje").addEventListener("click",()=>{ AB3=null; renderAtvTab(); });
+function focoEm(t){ $("#fCustom").value=t; show("foco"); $("#fLabel").textContent=t; }
+function renderAtvTab(){
+  if(!$("#ab3T")) return;
+  const k=AB3||refBig3(), d=DIAS[k]||{}, hoje=key(today0());
+  $("#ab3Tit").textContent = `Big 3 · ${k===hoje?"hoje":k===key(new Date(today0().getTime()+DAY))?"amanhã":""} ${lbl(k)}`;
+  const info=(aba,t)=>ITENS.find(i=>i.aba===aba && i.desc===t);
+  const card=(aba,pref,txt,min,campoMin)=>{ const lista=(txt||[]).map((t,i)=>[t,i]).filter(([t])=>t);
+    if(!lista.length) return `<p class="muted" style="font-size:.88rem">Nenhum item com BIG 3 = SIM na planilha para este dia.</p>`;
+    return lista.map(([t,i])=>{ const it=info(aba,t), conc=it?.status==="Concluído", real=FOCO.filter(x=>x.dia===k&&(x.tarefa===pref+t||x.tarefa===t)).reduce((a,x)=>a+(x.real||0),0), prev=(min||[])[i];
+      return `<div class="prj" style="gap:6px">
+        <div class="top"><span>${conc?`<span class="mk y">✓</span>`:`<span class="mk u">${i+1}</span>`} <b style="${conc?"text-decoration:line-through;color:var(--muted)":""}">${t}</b></span><span class="pill ${conc?"good":"base"}">${it?.status||"—"}</span></div>
+        <div class="chips">${it?.projeto?`<span class="chip">📁 ${it.projeto}</span>`:""}${it?.prazo?`<span class="chip ${!conc&&it.prazo<hoje?"crit":""}">prazo ${dataBR(it.prazo)}</span>`:""}${it?.resp&&it.resp!=="Alan"?`<span class="chip">${it.resp}</span>`:""}</div>
+        <div class="row" style="justify-content:flex-start;align-items:center">
+          <select class="tbsel" data-k="${k}" data-campo="${campoMin}" data-i="${i}" aria-label="Tempo-limite">${TIMEBOX.map(([v,l])=>`<option value="${v}" ${String(prev??"")===v?"selected":""}>${l}</option>`).join("")}</select>
+          <span class="num ${prev&&real>prev?"late":""}" style="font-size:.85rem">⏱ real ${real?fmtMin(real):"0 min"}</span>
+          ${conc?"":`<button type="button" class="btn" data-foco="${pref}${t}" style="padding:5px 12px">▶ Foco</button>`}
+        </div></div>`; }).join(""); };
+  $("#ab3T").innerHTML=card("Trabalho","💼 ",d.big3,d.big3Min,"big3Min");
+  $("#ab3P").innerHTML=card("Pessoal","🏠 ",d.big3P,d.big3PMin,"big3PMin");
+  const cnt=(txt,aba)=>{ const l=(txt||[]).filter(Boolean); return l.length?`${l.filter(t=>info(aba,t)?.status==="Concluído").length}/${l.length}`:""; };
+  $("#ab3CntT").textContent=cnt(d.big3,"Trabalho"); $("#ab3CntP").textContent=cnt(d.big3P,"Pessoal");
+  // Lista completa (planilha)
+  const mostraConc=$("#alConc").checked;
+  const lst=ITENS.filter(i=>(ALF==="Todas"||i.aba===ALF) && i.status!=="Cancelado" && (mostraConc||i.status!=="Concluído"))
+    .sort((a,b)=>((a.status==="Concluído")-(b.status==="Concluído")) || ((a.prazo||"9")<(b.prazo||"9")?-1:(a.prazo||"9")>(b.prazo||"9")?1:0));
+  $("#alLista").innerHTML = lst.length ? lst.map(i=>{ const atr=i.status!=="Concluído"&&i.prazo&&i.prazo<hoje;
+    return `<tr><td class="num" style="white-space:nowrap">${i.prazo?`<span class="${atr?"late":i.prazo===hoje?"soon":""}">${dataBR(i.prazo)}</span>`:"—"}</td><td style="${i.status==="Concluído"?"text-decoration:line-through;color:var(--muted)":""}">${i.big3?"⭐ ":""}${i.aba==="Pessoal"?"🏠":"💼"} ${i.desc}</td><td>${i.projeto?`<span class="chip">${i.projeto}</span>`:`<span class="kind">sem projeto</span>`}</td><td>${i.resp||""}</td><td><span class="kind">${i.status}</span></td></tr>`; }).join("")
+    : `<tr><td colspan="5" class="muted">Nada nesta visão.</td></tr>`;
+}
+$("#atvV-big3").addEventListener("change",async e=>{ const s=e.target.closest(".tbsel"); if(!s||!UID) return;
+  const k=s.dataset.k, campo=s.dataset.campo, i=+s.dataset.i, arr=[...(DIAS[k]?.[campo]||[null,null,null])]; arr[i]=s.value?Number(s.value):null;
+  try{ await setDoc(doc(db,"users",UID,"dias",k),{[campo]:arr},{merge:true}); }catch(err){ alertMsg(err); } });
+$("#atvV-big3").addEventListener("click",e=>{ const b=e.target.closest("[data-foco]"); if(b) focoEm(b.dataset.foco); });
+const alertMsg = err => { $("#ab3Tit").textContent = "Não salvou: "+err.code; };
+
 // ================= PROJETOS (aba) =================
 const dataBR = k => k ? `${k.slice(8,10)}/${k.slice(5,7)}` : "";
 function prjSinais(p){ return { parado: p.status==="Ativo" && p.diasSemAvanco>=7, semProx: p.abertas===0 && ["Ativo","Sugerido"].includes(p.status) }; }
@@ -1086,72 +1249,9 @@ function renderPrjTab(){
   $("#pjOrfasList").innerHTML=orf.map(x=>`<tr><td class="num" style="white-space:nowrap"><span class="late">${x.idade}d</span></td><td>${x.aba==="Pessoal"?"🏠":"💼"} ${x.desc}<br><span class="kind">${x.status}</span></td></tr>`).join("");
 }
 
-// ================= REGISTRAR =================
-let formDirty=false;
-const NUMS=["hrvV","pos21","pegadas","social","tela"];
+// ================= CONSTANTES (antes na aba Registrar) =================
 const TIMEBOX=[["","⏱️ tempo"],["15","15 min"],["30","30 min"],["45","45 min"],["60","1h"],["90","1h30"],["120","2h"],["180","3h"]];
-// Duas listas de Big 3: trabalho (campos big3*) e pessoal (campos big3P*)
-const LISTS=[
-  {p:"b",box:"#b3list",cnt:"#b3count",txt:"big3",min:"big3Min",st:"big3St",feitos:"big3Feitos",nome:"trabalho"},
-  {p:"q",box:"#b3listP",cnt:"#b3countP",txt:"big3P",min:"big3PMin",st:"big3PSt",feitos:"big3PFeitos",nome:"pessoal"},
-];
-const STSYM={"":"?",y:"✓",p:"~",n:"✗"};
-function b3count(L){ const c=[1,2,3].reduce((a,i)=>a+val($(`#${L.p}s${i}`).dataset.v),0); $(L.cnt).textContent=String(c).replace(".",","); return c; }
-LISTS.forEach(L=>{
-  $(L.box).innerHTML=[1,2,3].map(i=>`<div class="b3row"><span class="no">${i}</span><input id="${L.p}${i}" type="text" placeholder="Prioridade ${L.nome} ${i}: o que entregar" aria-label="Prioridade ${L.nome} ${i}"><select id="${L.p}t${i}" aria-label="Tempo-limite da prioridade ${L.nome} ${i}">${TIMEBOX.map(([v,l])=>`<option value="${v}">${l}</option>`).join("")}</select><button type="button" class="st" id="${L.p}s${i}" data-v="" aria-label="Status da prioridade ${L.nome} ${i}">?</button></div>`).join("");
-  [1,2,3].forEach(i=>{
-    $(`#${L.p}s${i}`).addEventListener("click",e=>{ const b=e.currentTarget; const v=["","y","p","n"][(["","y","p","n"].indexOf(b.dataset.v)+1)%4]; b.dataset.v=v; b.textContent=STSYM[v]; b3count(L); formDirty=true; $("#saveMsg").textContent="Alterações não salvas"; });
-    $(`#${L.p}t${i}`).addEventListener("change",()=>{ formDirty=true; $("#saveMsg").textContent="Alterações não salvas"; });
-  });
-});
 const ORDER=["","y","n","p"], SYM={"":"?",y:"✓",n:"✗",p:"~"};
-// Botões de hábito da aba Registrar: gerados da tabela (só ativos; os automáticos ficam de fora)
-function buildToggles(){
-  GRUPOS.forEach(([g])=>{ const box=document.querySelector(`#dayForm [data-group="${g}"]`); if(!box) return;
-    const hs=hAtivos().filter(h=>!h.auto && (h.grupo||"outros")===g);
-    box.innerHTML=hs.map(h=>`<button type="button" class="tg" data-f="${h.id}" data-v=""><span>${h.nome}</span><span class="st">?</span></button>`).join("");
-    box.closest(".fgroup").hidden = !hs.length && !box.closest(".fgroup").querySelector(".fields, .b3list"); });
-}
-$("#dayForm").addEventListener("click",e=>{ const b=e.target.closest(".tg"); if(!b) return;
-  const v=ORDER[(ORDER.indexOf(b.dataset.v)+1)%4]; b.dataset.v=v; b.querySelector(".st").textContent=SYM[v]; formDirty=true; $("#saveMsg").textContent="Alterações não salvas"; });
-buildToggles();
-document.querySelectorAll("#dayForm input, #dayForm textarea").forEach(i=>{ if(i.id!=="fDate") i.addEventListener("input",()=>{formDirty=true;$("#saveMsg").textContent="Alterações não salvas";}); });
-$("#fDate").value=key(today0());
-$("#fDate").addEventListener("change",e=>{ formDirty=false; loadForm(e.target.value); renderAll(); });
-function loadForm(k){
-  const d=DIAS[k]||{};
-  document.querySelectorAll(".tg").forEach(b=>{ const v=d[b.dataset.f]||""; b.dataset.v=v; b.querySelector(".st").textContent=SYM[v]; });
-  $("#cel1").value=d.cel1||""; NUMS.forEach(n=>$("#"+n).value=d[n]??"");
-  $("#b3src").hidden = d.big3Fonte!=="planilha";
-  LISTS.forEach(L=>{
-    const b=d[L.txt]||[], st=d[L.st]||[], tm=d[L.min]||[];
-    [1,2,3].forEach(i=>{ $(`#${L.p}${i}`).value=b[i-1]||""; $(`#${L.p}t${i}`).value=tm[i-1]?String(tm[i-1]):""; const v=st[i-1]||""; $(`#${L.p}s${i}`).dataset.v=v; $(`#${L.p}s${i}`).textContent=STSYM[v]; });
-    if(!st.some?.(Boolean) && typeof d[L.feitos]==="number") $(L.cnt).textContent=String(d[L.feitos]).replace(".",","); else b3count(L);
-  });
-  $("#obs").value=d.obs||"";
-  $("#saveMsg").textContent=DIAS[k]?`Registro de ${lbl(k)} carregado`:`Nenhum registro em ${lbl(k)}`;
-}
-$("#dayForm").addEventListener("submit",async e=>{
-  e.preventDefault(); if(!UID) return;
-  const k=$("#fDate").value, data={atualizado:serverTimestamp()};
-  document.querySelectorAll(".tg").forEach(b=>data[b.dataset.f]=b.dataset.v||null);
-  data.cel1=$("#cel1").value||null;
-  NUMS.forEach(n=>{ const v=$("#"+n).value; data[n]=v===""?null:Number(v); });
-  LISTS.forEach(L=>{
-    data[L.txt]=[1,2,3].map(i=>$(`#${L.p}${i}`).value.trim());
-    data[L.min]=[1,2,3].map(i=>$(`#${L.p}t${i}`).value?Number($(`#${L.p}t${i}`).value):null);
-    data[L.st]=[1,2,3].map(i=>$(`#${L.p}s${i}`).dataset.v||null);
-    if(data[L.st].some(Boolean)) data[L.feitos]=b3count(L);
-  });
-  data.obs=$("#obs").value.trim()||null;
-  // nota numérica (0–100) fica em "notaDia"; o campo "nota" é o hábito ✓/✗ de ter escrito a nota no Obsidian
-  data.notaDia=notaDia({...(DIAS[k]||{}),...data},k).nota;
-  $("#btnSave").disabled=true;
-  try{ await setDoc(doc(db,"users",UID,"dias",k),data,{merge:true}); formDirty=false; const t=new Date(); $("#saveMsg").textContent=`Salvo às ${pad(t.getHours())}:${pad(t.getMinutes())}`; }
-  catch(err){ $("#saveMsg").textContent="Não salvou: "+err.code+". Verifique a conexão e tente de novo."; }
-  $("#btnSave").disabled=false;
-});
-
 // ================= FOCO =================
 let planMin=25,startAt=null,accMs=0,timerId=null; const C=2*Math.PI*52;
 const task=()=>$("#fCustom").value.trim()||$("#fTask").value;
