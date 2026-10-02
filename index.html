@@ -501,7 +501,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 01/10 · sequência de notas</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 01/10 · sequência corrigida</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
@@ -684,7 +684,15 @@ function weekScores(){
   return out;
 }
 // sequência de dias seguidos com ✓ (ignora dias futuros, como o Big 3 de amanhã já carregado, e dias ainda sem registro)
-function streak(f){ let s=0; const hojeK=key(today0()); const ks=sortedKeys().filter(k=>k<=hojeK); for(let i=ks.length-1;i>=0;i--){ const v=DIAS[ks[i]][f]; if(v==="y") s++; else if(v==null) continue; else break; } return s; }
+// sequência = dias SEGUIDOS no calendário com ✓, contando de hoje para trás.
+// Hoje ainda em aberto não quebra (o dia não acabou); qualquer dia passado sem ✓ (ou sem registro) quebra.
+function streak(f){
+  let s=0, d=today0();
+  const vHoje=DIAS[key(d)]?.[f];
+  if(vHoje==="y") s++; else if(vHoje==="n") return 0;
+  for(;;){ d=new Date(d.getTime()-DAY); if(DIAS[key(d)]?.[f]==="y") s++; else break; }
+  return s;
+}
 function lastVal(f){ const ks=sortedKeys().filter(k=>DIAS[k][f]!=null); return ks.length?{k:ks[ks.length-1],v:DIAS[ks[ks.length-1]][f],prev:ks.length>1?DIAS[ks[ks.length-2]][f]:null}:null; }
 function avgLast(f,n=7){ const vs=sortedKeys().map(k=>DIAS[k][f]).filter(v=>typeof v==="number").slice(-n); return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null; }
 
