@@ -444,8 +444,8 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
 
   <!-- FOCO -->
   <section class="panel" id="p-foco" hidden>
-    <div class="sec-head"><h2>Timer de foco</h2><span class="eyebrow">⚡ timeboxing · previsto × real</span></div>
-    <div class="focus">
+    <div class="sec-head"><h2>Timer de foco</h2><span class="eyebrow">pomodoro · celular longe durante o bloco</span></div>
+    <div style="display:grid;gap:18px;max-width:560px;width:100%;margin-inline:auto">
       <div class="ringbox">
         <div class="ring">
           <svg viewBox="0 0 120 120" aria-hidden="true">
@@ -467,11 +467,8 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
         </div>
       </div>
       <div class="log">
-        <div class="field"><label for="fTask">Tarefa (Big 3 de hoje)</label><select id="fTask"></select></div>
-        <div class="field"><label for="fCustom">Ou digite outra tarefa</label><input id="fCustom" type="text" placeholder="ex.: responder o cliente"></div>
-        <p class="note">Antes de iniciar: celular longe, WhatsApp só no computador. Se passar do tempo, o relógio fica vermelho e conta o excedente.</p>
-        <h3>Sessões registradas</h3>
-        <div class="tbl"><table><thead><tr><th>Quando</th><th>Tarefa</th><th class="r">Previsto</th><th class="r">Real</th></tr></thead><tbody id="fLog"></tbody></table></div>
+        <div class="sec-head" style="margin:0"><h3>Sessões de hoje</h3><span class="eyebrow" id="fResumo"></span></div>
+        <div class="tbl"><table><thead><tr><th>#</th><th>Início</th><th class="r">Programado</th><th class="r">Concluído em</th><th>Situação</th></tr></thead><tbody id="fLog"></tbody></table></div>
       </div>
     </div>
   </section>
@@ -554,7 +551,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 02/10 · concluir pelo painel</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 02/10 · foco simplificado</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
@@ -898,11 +895,6 @@ function renderAll(){
   $("#b3HojeP").innerHTML=b3li(refDia.big3P,refDia.big3PSt,refDia.big3PMin,"🏠 ");
   // Atalho na aba Registrar quando o Big 3 da planilha já está no dia seguinte
   renderAtvTab();
-
-  // Foco: tarefas do Big 3 de hoje
-  const hojeD=DIAS[key(t0)]||{};
-  const tb=[...(hojeD.big3||[]).filter(Boolean).map(t=>"💼 "+t),...(hojeD.big3P||[]).filter(Boolean).map(t=>"🏠 "+t)];
-  $("#fTask").innerHTML=(tb.length?tb:["(registre o Big 3 de hoje)"]).map(t=>`<option>${t}</option>`).join("");
 }
 
 function chart(title,better,pts,yMin,yMax,base,goal,fy,unit){
@@ -1167,7 +1159,6 @@ const refBig3 = () => { const t0=today0(); const amanha=key(new Date(t0.getTime(
 $("#ab3Prev").addEventListener("click",()=>{ AB3=key(new Date(new Date((AB3||refBig3())+"T12:00:00").getTime()-DAY)); renderAtvTab(); });
 $("#ab3Next").addEventListener("click",()=>{ AB3=key(new Date(new Date((AB3||refBig3())+"T12:00:00").getTime()+DAY)); renderAtvTab(); });
 $("#ab3Hoje").addEventListener("click",()=>{ AB3=null; renderAtvTab(); });
-function focoEm(t){ $("#fCustom").value=t; show("foco"); $("#fLabel").textContent=t; }
 function renderAtvTab(){
   if(!$("#ab3T")) return;
   const k=AB3||refBig3(), d=DIAS[k]||{}, hoje=key(today0());
@@ -1261,20 +1252,40 @@ function renderPrjTab(){
 const TIMEBOX=[["","⏱️ tempo"],["15","15 min"],["30","30 min"],["45","45 min"],["60","1h"],["90","1h30"],["120","2h"],["180","3h"]];
 const ORDER=["","y","n","p"], SYM={"":"?",y:"✓",n:"✗",p:"~"};
 // ================= FOCO =================
-let planMin=25,startAt=null,accMs=0,timerId=null; const C=2*Math.PI*52;
-const task=()=>$("#fCustom").value.trim()||$("#fTask").value;
+// Pomodoro simples: cada sessão é gravada ao iniciar (início + programado) e fechada ao concluir ou zerar (tempo real).
+let planMin=25,startAt=null,accMs=0,timerId=null,SESS=null; const C=2*Math.PI*52;
 function renderT(){ const ms=accMs+(startAt?Date.now()-startAt:0),left=planMin*6e4-ms,over=left<0,s=Math.floor(Math.abs(left)/1000);
   $("#fTime").textContent=(over?"+":"")+`${pad(Math.floor(s/60))}:${pad(s%60)}`; $("#fTime").classList.toggle("over",over);
   $("#arc").setAttribute("stroke-dashoffset",String(C*Math.min(1,ms/(planMin*6e4)))); $("#arc").setAttribute("stroke",over?"var(--crit)":"var(--accent)");
   $("#fPlan").textContent=`previsto ${planMin} min${ms>0?` · real ${Math.round(ms/6e4)} min`:""}`; }
 document.querySelectorAll("#presets button").forEach(b=>b.addEventListener("click",()=>{ if(startAt) return; planMin=+b.dataset.m; document.querySelectorAll("#presets button").forEach(x=>x.classList.toggle("sel",x===b)); renderT(); }));
-$("#fStart").addEventListener("click",()=>{ if(startAt){accMs+=Date.now()-startAt;startAt=null;clearInterval(timerId);$("#fStart").textContent="Retomar";} else {startAt=Date.now();timerId=setInterval(renderT,250);$("#fStart").textContent="Pausar";$("#fLabel").textContent=task();} renderT(); });
-$("#fStop").addEventListener("click",async()=>{ const ms=accMs+(startAt?Date.now()-startAt:0); if(ms<6e4){$("#fLabel").textContent="Menos de 1 min: não registrado";return;}
-  const r=Math.round(ms/6e4); startAt=null;accMs=0;clearInterval(timerId);$("#fStart").textContent="Iniciar";renderT();
-  try{ await addDoc(collection(db,"users",UID,"foco"),{quando:serverTimestamp(),dia:key(today0()),tarefa:task(),previsto:planMin,real:r}); $("#fLabel").textContent="Sessão registrada"; }
-  catch(e){ $("#fLabel").textContent="Não registrou: "+e.code; } });
-$("#fReset").addEventListener("click",()=>{startAt=null;accMs=0;clearInterval(timerId);$("#fStart").textContent="Iniciar";$("#fLabel").textContent="Pronto para começar";renderT();});
-function drawLog(){ $("#fLog").innerHTML=FOCO.length?FOCO.map(x=>{const d=x.quando?.toDate?.(); return `<tr><td class="num">${d?`${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`:"agora"}</td><td>${x.tarefa}</td><td class="r num">${x.previsto} min</td><td class="r num" style="color:${x.real>x.previsto?"var(--crit)":"var(--good)"}">${x.real} min</td></tr>`;}).join(""):`<tr><td colspan="4" class="muted">Nenhuma sessão ainda. Conclua um bloco para registrar.</td></tr>`; }
+$("#fStart").addEventListener("click",async()=>{
+  if(startAt){ accMs+=Date.now()-startAt; startAt=null; clearInterval(timerId); $("#fStart").textContent="Retomar"; $("#fLabel").textContent="Pausado"; renderT(); return; }
+  startAt=Date.now(); timerId=setInterval(renderT,250); $("#fStart").textContent="Pausar"; $("#fLabel").textContent="Em foco"; renderT();
+  if(!SESS && UID){ try{ const r=await addDoc(collection(db,"users",UID,"foco"),{quando:serverTimestamp(),dia:key(today0()),inicioMs:startAt,previsto:planMin,real:null,status:"em andamento"}); SESS=r.id; }catch(e){ $("#fLabel").textContent="Não registrou: "+e.code; } }
+});
+async function fecharSessao(status){
+  const ms=accMs+(startAt?Date.now()-startAt:0), r=Math.round(ms/6e4), id=SESS;
+  startAt=null; accMs=0; SESS=null; clearInterval(timerId); $("#fStart").textContent="Iniciar"; renderT();
+  if(!id||!UID) return;
+  try{
+    if(ms<6e4) { await deleteDoc(doc(db,"users",UID,"foco",id)); $("#fLabel").textContent="Menos de 1 min: não registrado"; }
+    else { await setDoc(doc(db,"users",UID,"foco",id),{real:r,fimMs:Date.now(),status},{merge:true}); $("#fLabel").textContent=status==="concluída"?"Sessão concluída ✓":"Sessão interrompida"; }
+  }catch(e){ $("#fLabel").textContent="Não registrou: "+e.code; }
+}
+$("#fStop").addEventListener("click",()=>fecharSessao("concluída"));
+$("#fReset").addEventListener("click",()=>{ if(SESS) fecharSessao("interrompida"); else { startAt=null;accMs=0;clearInterval(timerId);$("#fStart").textContent="Iniciar";$("#fLabel").textContent="Pronto para começar";renderT(); } });
+function drawLog(){
+  const hoje=key(today0());
+  const ses=FOCO.filter(x=>x.dia===hoje).sort((a,b)=>(a.inicioMs||a.quando?.toMillis?.()||0)-(b.inicioMs||b.quando?.toMillis?.()||0));
+  const hora=x=>{ const d=x.inicioMs?new Date(x.inicioMs):x.quando?.toDate?.(); return d?`${pad(d.getHours())}:${pad(d.getMinutes())}`:"agora"; };
+  const conc=ses.filter(x=>x.status!=="interrompida"&&x.real!=null), tot=conc.reduce((a,x)=>a+(x.real||0),0);
+  $("#fResumo").textContent = ses.length ? `${conc.length} concluída${conc.length===1?"":"s"} · ${fmtMin(tot)||"0 min"} em foco` : "";
+  $("#fLog").innerHTML = ses.length ? ses.map((x,i)=>{ const st=x.status||(x.real!=null?"concluída":"em andamento");
+    const cor=st==="interrompida"?"var(--warn)":x.real!=null&&x.real>x.previsto?"var(--crit)":"var(--good)";
+    return `<tr><td class="num">${i+1}</td><td class="num">${hora(x)}</td><td class="r num">${x.previsto} min</td><td class="r num" style="color:${x.real!=null?cor:"var(--muted)"}">${x.real!=null?x.real+" min":"—"}</td><td><span class="kind">${st==="em andamento"?"⏱ em andamento":st}</span></td></tr>`; }).join("")
+    : `<tr><td colspan="5" class="muted">Nenhuma sessão hoje. Escolha o tempo e toque em Iniciar.</td></tr>`;
+}
 renderT();
 
 // ================= BREAK =================
