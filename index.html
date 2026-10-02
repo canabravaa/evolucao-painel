@@ -123,6 +123,10 @@ nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:v
 .gain .pts{font-family:var(--f-mono);font-weight:600;color:var(--good);font-size:.85rem}
 .gain .hr{font-family:var(--f-mono);font-size:.72rem;color:var(--muted);white-space:nowrap}
 .nextline{font-size:.85rem;margin-top:6px;border-top:1px solid var(--line);padding-top:8px}
+/* Foco: relógio à esquerda e sessões à direita a partir do tablet (≥ 700px); no celular, uma coluna */
+.focus2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+.focus2 > *{min-width:0}
+@media (max-width:700px){.focus2{grid-template-columns:1fr}}
 .breakbox{width:100%;border-top:1px solid var(--line);padding-top:14px;display:flex;gap:16px;align-items:center;justify-content:center;flex-wrap:wrap}
 .btn.brk{font-size:1rem;padding:11px 20px}
 .btn.brk.on{background:var(--warn);border-color:var(--warn);color:var(--paper)}
@@ -445,7 +449,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
   <!-- FOCO -->
   <section class="panel" id="p-foco" hidden>
     <div class="sec-head"><h2>Timer de foco</h2><span class="eyebrow">pomodoro · celular longe durante o bloco</span></div>
-    <div style="display:grid;gap:18px;max-width:560px;width:100%;margin-inline:auto">
+    <div class="focus2">
       <div class="ringbox">
         <div class="ring">
           <svg viewBox="0 0 120 120" aria-hidden="true">
