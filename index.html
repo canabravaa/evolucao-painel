@@ -677,7 +677,8 @@ onAuthStateChanged(auth, async user => {
     renderAll();
   }, e => { $("#sync").className = "sync err"; console.error(e); });
   onSnapshot(query(collection(db,"users",UID,"foco"), orderBy("quando","desc"), limit(60)), snap => { FOCO = snap.docs.map(d=>({id:d.id,...d.data()})); drawLog(); renderAll(); });
-  onSnapshot(query(collection(db,"users",UID,"breaks"), where("dia","==",key(today0()))), snap => { BRK = snap.docs.map(d=>({id:d.id,...d.data()})); renderBreak(); });
+  // últimos 2 dias: o total e a lista filtram o dia corrente na hora de desenhar (a página pode virar a meia-noite aberta)
+  onSnapshot(query(collection(db,"users",UID,"breaks"), where("dia",">=",key(new Date(today0().getTime()-DAY)))), snap => { BRK = snap.docs.map(d=>({id:d.id,...d.data()})); renderBreak(); drawLog(); });
   onSnapshot(doc(db,"users",UID,"atividades","resumo"), s => { ATV = s.exists() ? s.data() : null; renderAtv(); });
   // Tabela de hábitos: na primeira vez grava os 18 hábitos atuais; depois a tela passa a ler daqui
   let habSemeado=false;
@@ -1279,7 +1280,7 @@ let planMin=25,startAt=null,accMs=0,timerId=null,SESS=null; const C=2*Math.PI*52
 function renderT(){ const ms=accMs+(startAt?Date.now()-startAt:0),left=planMin*6e4-ms,over=left<0,s=Math.floor(Math.abs(left)/1000);
   $("#fTime").textContent=(over?"+":"")+`${pad(Math.floor(s/60))}:${pad(s%60)}`; $("#fTime").classList.toggle("over",over);
   $("#arc").setAttribute("stroke-dashoffset",String(C*Math.min(1,ms/(planMin*6e4)))); $("#arc").setAttribute("stroke",over?"var(--crit)":"var(--accent)");
-  $("#fPlan").textContent=`previsto ${planMin} min${ms>0?` · real ${Math.round(ms/6e4)} min`:""}`; }
+  $("#fPlan").textContent=`previsto ${planMin} min`; }
 document.querySelectorAll("#presets button").forEach(b=>b.addEventListener("click",()=>{ if(startAt) return; planMin=+b.dataset.m; document.querySelectorAll("#presets button").forEach(x=>x.classList.toggle("sel",x===b)); renderT(); }));
 $("#fStart").addEventListener("click",async()=>{
   if(startAt){ accMs+=Date.now()-startAt; startAt=null; clearInterval(timerId); $("#fStart").textContent="Retomar"; $("#fLabel").textContent="Pausado"; renderT(); return; }
@@ -1302,11 +1303,17 @@ function drawLog(){
   const ses=FOCO.filter(x=>x.dia===hoje).sort((a,b)=>(a.inicioMs||a.quando?.toMillis?.()||0)-(b.inicioMs||b.quando?.toMillis?.()||0));
   const hora=x=>{ const d=x.inicioMs?new Date(x.inicioMs):x.quando?.toDate?.(); return d?`${pad(d.getHours())}:${pad(d.getMinutes())}`:"agora"; };
   const conc=ses.filter(x=>x.status!=="interrompida"&&x.real!=null), tot=conc.reduce((a,x)=>a+(x.real||0),0);
-  $("#fResumo").textContent = ses.length ? `${conc.length} concluída${conc.length===1?"":"s"} · ${fmtMin(tot)||"0 min"} em foco` : "";
-  $("#fLog").innerHTML = ses.length ? ses.map((x,i)=>{ const st=x.status||(x.real!=null?"concluída":"em andamento");
+  const brks=brkHoje().filter(b=>b.fimMs);
+  $("#fResumo").textContent = ses.length||brks.length ? `${conc.length} concluída${conc.length===1?"":"s"} · ${fmtMin(tot)||"0 min"} em foco${brks.length?` · ${brks.length} break${brks.length===1?"":"s"}`:""}` : "";
+  // sessões e breaks confirmados na mesma linha do tempo; só as sessões são numeradas
+  const linhas=[...ses.map(x=>({t:"s",ms:x.inicioMs||x.quando?.toMillis?.()||0,x})),...brks.map(x=>({t:"b",ms:x.inicioMs,x}))].sort((a,b)=>a.ms-b.ms);
+  let n=0;
+  $("#fLog").innerHTML = linhas.length ? linhas.map(({t,x})=>{
+    const del=`<td class="r"><button type="button" class="btn" data-fdel="${x.id}" data-ftipo="${t}" style="padding:3px 9px;color:var(--crit)" title="Apagar">${FDEL===x.id?"Confirmar":"🗑"}</button></td>`;
+    if(t==="b") return `<tr style="background:var(--accent-soft)"><td>☕</td><td class="num">${hora(x)}</td><td class="r num muted">—</td><td class="r num">${x.min} min</td><td><span class="kind">break</span></td>${del}</tr>`;
+    const st=x.status||(x.real!=null?"concluída":"em andamento");
     const cor=st==="interrompida"?"var(--warn)":x.real!=null&&x.real>x.previsto?"var(--crit)":"var(--good)";
-    return `<tr><td class="num">${i+1}</td><td class="num">${hora(x)}</td><td class="r num">${x.previsto} min</td><td class="r num" style="color:${x.real!=null?cor:"var(--muted)"}">${x.real!=null?x.real+" min":"—"}</td><td><span class="kind">${st==="em andamento"?"⏱ em andamento":st}</span></td>
-      <td class="r"><button type="button" class="btn" data-fdel="${x.id}" style="padding:3px 9px;color:var(--crit)" title="Apagar sessão">${FDEL===x.id?"Confirmar":"🗑"}</button></td></tr>`; }).join("")
+    return `<tr><td class="num">${++n}</td><td class="num">${hora(x)}</td><td class="r num">${x.previsto} min</td><td class="r num" style="color:${x.real!=null?cor:"var(--muted)"}">${x.real!=null?x.real+" min":"—"}</td><td><span class="kind">${st==="em andamento"?"⏱ em andamento":st}</span></td>${del}</tr>`; }).join("")
     : `<tr><td colspan="6" class="muted">Nenhuma sessão hoje. Escolha o tempo e toque em Iniciar.</td></tr>`;
 }
 // apagar sessão em dois toques; se for a sessão em andamento, o relógio também zera
@@ -1315,6 +1322,7 @@ $("#fLog").addEventListener("click",async e=>{
   const b=e.target.closest("[data-fdel]"); if(!b||!UID) return; const id=b.dataset.fdel;
   if(FDEL!==id){ FDEL=id; drawLog(); clearTimeout(FDELT); FDELT=setTimeout(()=>{ FDEL=null; drawLog(); },5000); return; }
   FDEL=null; clearTimeout(FDELT);
+  if(b.dataset.ftipo==="b"){ const br=BRK.find(x=>x.id===id); try{ await deleteDoc(doc(db,"users",UID,"breaks",id)); if(br) await gravarTotaisBreak(br.dia,id); }catch(err){ $("#fResumo").textContent="Não apagou: "+err.code; } return; }
   if(id===SESS){ SESS=null; startAt=null; accMs=0; clearInterval(timerId); $("#fStart").textContent="Iniciar"; $("#fLabel").textContent="Pronto para começar"; renderT(); }
   try{ await deleteDoc(doc(db,"users",UID,"foco",id)); }catch(err){ $("#fResumo").textContent="Não apagou: "+err.code; }
 });
@@ -1323,13 +1331,22 @@ renderT();
 // ================= BREAK =================
 // Cada break é um documento em users/{uid}/breaks (dia, inicioMs, fimMs, min). Um break aberto fica com fimMs nulo,
 // então continua contando mesmo se a página for fechada ou aberta em outro aparelho.
-const brkAberto = () => BRK.find(b => !b.fimMs);
+// Só um break aberto por vez: se houver mais de um (clique duplo, dois aparelhos), vale o mais antigo e os outros são apagados ao encerrar.
+const brkHoje = () => BRK.filter(b => b.dia === key(today0()));
+const brkAbertos = () => BRK.filter(b => !b.fimMs).sort((a,b)=>a.inicioMs-b.inicioMs);
+const brkAberto = () => brkAbertos()[0];
+let BRKBUSY = false;
+// grava no dia o total absoluto (recalculado), em vez de somar: assim duplicados e exclusões não distorcem
+async function gravarTotaisBreak(dia, semId){
+  const f = BRK.filter(b => b.dia===dia && b.fimMs && b.id!==semId);
+  await setDoc(doc(db,"users",UID,"dias",dia), { breaksN: f.length, breaksMin: f.reduce((a,b)=>a+(b.min||0),0) }, { merge: true });
+}
 function renderBreak(){
   const ab = brkAberto(), agora = Date.now();
-  const fechados = BRK.filter(b => b.fimMs);
+  const fechados = brkHoje().filter(b => b.fimMs);
   const minFech = fechados.reduce((a,b)=>a+(b.min||0),0);
-  const minAb = ab ? (agora-ab.inicioMs)/6e4 : 0;
-  $("#brkN").textContent = BRK.length;
+  const minAb = ab && ab.dia===key(today0()) ? (agora-ab.inicioMs)/6e4 : 0;
+  $("#brkN").textContent = fechados.length + (ab ? 1 : 0);
   $("#brkMin").innerHTML = `${Math.round(minFech+minAb)}<small>min</small>`;
   const btn = $("#btnBreak");
   if (ab) { const s=Math.floor((agora-ab.inicioMs)/1000); btn.classList.add("on"); btn.textContent = `Encerrar break · ${pad(Math.floor(s/60))}:${pad(s%60)}`; }
@@ -1337,19 +1354,23 @@ function renderBreak(){
 }
 setInterval(() => { if (brkAberto()) renderBreak(); }, 1000);
 $("#btnBreak").addEventListener("click", async () => {
-  if (!UID) return;
+  if (!UID || BRKBUSY) return;
+  BRKBUSY = true; $("#btnBreak").disabled = true;
   const ab = brkAberto();
   try {
     if (ab) {
       const fim = Date.now(), min = Math.max(1, Math.round((fim-ab.inicioMs)/6e4));
+      for (const d of brkAbertos().slice(1)) await deleteDoc(doc(db,"users",UID,"breaks",d.id));
       await updateDoc(doc(db,"users",UID,"breaks",ab.id), { fimMs: fim, min });
-      await setDoc(doc(db,"users",UID,"dias",ab.dia), { breaksN: increment(1), breaksMin: increment(min) }, { merge: true });
+      Object.assign(ab, { fimMs: fim, min }); BRK = BRK.filter(b => b.fimMs || b.id===ab.id);
+      await gravarTotaisBreak(ab.dia);
     } else {
       // pausa o timer de foco, se estiver rodando
       if (startAt) { accMs += Date.now()-startAt; startAt=null; clearInterval(timerId); $("#fStart").textContent="Retomar"; $("#fLabel").textContent="Em break"; renderT(); }
       await addDoc(collection(db,"users",UID,"breaks"), { dia: key(today0()), inicioMs: Date.now(), fimMs: null, min: null, criado: serverTimestamp() });
     }
   } catch (e) { $("#fLabel").textContent = "Break não registrado: " + e.code; }
+  finally { BRKBUSY = false; $("#btnBreak").disabled = false; renderBreak(); }
 });
 
 // ================= MÉTODOS + RODA DA VIDA =================
