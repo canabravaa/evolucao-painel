@@ -491,6 +491,10 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
     <div id="goals" style="display:grid;gap:18px"></div>
     <div><h2 style="margin-bottom:8px">Marcos</h2><ul class="miles" id="miles"></ul></div>
+    <div>
+      <div class="sec-head"><h2>Candidatos ao Ciclo 2</h2><span class="eyebrow" id="candInfo">vem do Backlog de Melhorias · escolha de até 3 na semana 13</span></div>
+      <div class="tbl"><table><thead><tr><th>#</th><th>Tema</th><th>Por quê</th><th>Meta possível</th><th>Status</th></tr></thead><tbody id="candList"></tbody></table></div>
+    </div>
   </section>
 
   <!-- HÁBITOS -->
@@ -680,6 +684,7 @@ onAuthStateChanged(auth, async user => {
   // últimos 2 dias: o total e a lista filtram o dia corrente na hora de desenhar (a página pode virar a meia-noite aberta)
   onSnapshot(query(collection(db,"users",UID,"breaks"), where("dia",">=",key(new Date(today0().getTime()-DAY)))), snap => { BRK = snap.docs.map(d=>({id:d.id,...d.data()})); renderBreak(); drawLog(); });
   onSnapshot(doc(db,"users",UID,"atividades","resumo"), s => { ATV = s.exists() ? s.data() : null; renderAtv(); });
+  onSnapshot(doc(db,"users",UID,"ciclo","candidatos"), s => renderCand(s.exists() ? s.data() : null));
   // Tabela de hábitos: na primeira vez grava os 18 hábitos atuais; depois a tela passa a ler daqui
   let habSemeado=false;
   onSnapshot(collection(db,"users",UID,"habitos"), async snap => {
@@ -1269,6 +1274,17 @@ function renderPrjTab(){
   const orf=ATV.semProjeto||[];
   $("#pjOrfas").hidden=!orf.length;
   $("#pjOrfasList").innerHTML=orf.map(x=>`<tr><td class="num" style="white-space:nowrap"><span class="late">${x.idade}d</span></td><td>${x.aba==="Pessoal"?"🏠":"💼"} ${x.desc}<br><span class="kind">${x.status}</span></td></tr>`).join("");
+}
+
+// ================= CANDIDATOS AO CICLO 2 =================
+// Fonte: tabela do Backlog de Melhorias no Obsidian (sync-candidatos.mjs). O painel só exibe.
+function renderCand(d){
+  const its=d?.itens||[], esc=s=>String(s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+  const ordem=s=>/✅/.test(s)?0:/⭐/.test(s)?1:/⏸/.test(s)?3:2;
+  const quando=d?.atualizado?.toDate?.();
+  $("#candInfo").textContent=`${its.length} tema${its.length===1?"":"s"} · vem do Backlog de Melhorias · escolha de até 3 na semana 13${quando?` · atualizado ${dataBR(key(quando))}`:""}`;
+  $("#candList").innerHTML=its.length?[...its].sort((a,b)=>ordem(a.status)-ordem(b.status)).map(c=>`<tr><td class="num">${esc(c.id)}</td><td><b>${esc(c.tema)}</b><br><span class="kind">${esc(c.pilar)}</span></td><td style="font-size:.88rem">${esc(c.porque)}</td><td style="font-size:.88rem">${esc(c.meta)}</td><td style="white-space:nowrap">${esc(c.status)}</td></tr>`).join("")
+    :`<tr><td colspan="5" class="muted">Nenhum candidato ainda. Anote no Backlog de Melhorias, seção "Candidatos ao Ciclo 2".</td></tr>`;
 }
 
 // ================= CONSTANTES (antes na aba Registrar) =================
