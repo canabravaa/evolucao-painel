@@ -340,9 +340,10 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
         <span class="muted" style="font-size:.85rem">Celular fora do quarto às 21:00</span>
       </div>
       <div class="tcard">
-        <span class="eyebrow">Para subir a nota hoje</span>
-        <ul class="gain" id="gainList"></ul>
-        <span class="muted" style="font-size:.75rem">Toque num item para registrar.</span>
+        <span class="eyebrow">De volta ao plano</span>
+        <p id="quoteTxt" style="font-size:1.05rem;line-height:1.4;margin:.2rem 0 .1rem;font-weight:600"></p>
+        <span class="muted" id="quoteAut" style="font-size:.78rem"></span>
+        <span class="muted" style="font-size:.8rem;margin-top:.5rem">🏅 <span id="quoteWin"></span></span>
       </div>
       </div>
       <div class="tcard">
@@ -560,7 +561,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 02/10 · pedidos já refletidos</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 09/10 · frase do dia</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
@@ -580,6 +581,28 @@ const START = new Date(2026,8,29), END = new Date(2026,11,20,23,59,59);
 // peso na nota do dia, tática do ciclo (T1–T10), status (ativo | pausado | consolidado) e auto (marcado por robô).
 const GRUPOS=[["manha","🌅 Manhã"],["trabalho","💼 Trabalho"],["alimentacao","🥗 Alimentação"],["noite","🌙 Noite"],["semana","📅 Semana"],["outros","✨ Outros"]];
 const D7=[0,1,2,3,4,5,6], UTEIS=[1,2,3,4,5], LIMITE_HAB=12, DSEM=["D","S","T","Q","Q","S","S"];
+// Frases da aba Hoje (uma por dia, em rodízio) e conquistas reais do ciclo para relembrar.
+const QUOTES=[
+  ["Recomeçar não é voltar ao zero. É voltar ao plano.",""],
+  ["Nunca falhe duas vezes. Um dia ruim é acidente; o segundo é o começo de outro hábito.","inspirado em James Clear"],
+  ["Você não sobe ao nível das suas metas. Cai ao nível dos seus sistemas.","James Clear"],
+  ["A versão mínima de hoje vale mais que a versão perfeita de amanhã.",""],
+  ["O dia começa na noite anterior: deitar cedo é a primeira tarefa de amanhã.",""],
+  ["Velocidade é decidir rápido e começar pequeno.",""],
+  ["Disciplina é lembrar o que você quer.","David Campbell"],
+  ["Não precisa de vontade para dar o primeiro passo. A vontade vem depois dele.",""],
+  ["Um passo para trás não apaga os dez que você já deu.",""],
+  ["Foco é dizer não para o que é bom, para fazer o que é importante.",""]
+];
+const VITORIAS=[
+  "29/09 a 04/10: seis notas em seis dias.",
+  "01/10: Big 3 completo — 3/3 no trabalho e 3/3 no pessoal.",
+  "02/10: melhor dia de celular — 1h42 de tela e 66 pegadas.",
+  "04/10: primeira yoga estruturada.",
+  "05/10: celular fora às 21h — só 2 min de uso depois das 21h.",
+  "07/10: primeira sessão de inglês, com sono de 7,5 h e HRV 77.",
+  "Semana 1: 10 ações concluídas e treino em 6 de 6 dias."
+];
 const SEED_HAB=[
   ["hrv","HRV ao acordar","manha",D7,5,"T4"],["banh","Banheiro sem celular","manha",D7,5],["med","Meditação","manha",D7,5],
   ["treino","Treino","manha",[1,2,3,4,5,6],7],["leit","Leitura","manha",D7,3],
@@ -887,8 +910,10 @@ function renderAll(){
   if(typeof dH.pegadas!=="number") ganhos.push({g:5*escN,l:"Ficar abaixo de 90 pegadas",h:""});
   if(typeof dH.social!=="number") ganhos.push({g:5*escN,l:"X + Instagram ≤ 30 min",h:""});
   ganhos.sort((a,b)=>b.g-a.g);
-  $("#gainList").innerHTML = ganhos.length ? ganhos.slice(0,6).map(x=>`<li><button type="button" data-go="registrar"><span class="pts">+${String(Math.round(x.g*10)/10).replace(".",",")}</span><span>${x.l}</span><span class="hr">${x.h}</span></button></li>`).join("") : `<li class="muted" style="font-size:.88rem">Nada pendente: dia completo. 🎉</li>`;
-  document.querySelectorAll("#gainList [data-go]").forEach(b=>b.onclick=()=>show("habitos"));
+  // Frase do dia (pedido de 09/10): troca o "Para subir a nota hoje" por uma frase que traz de volta ao plano + uma conquista já registrada.
+  const nDia=Math.floor(Date.now()/864e5);
+  const [qt,qa]=QUOTES[nDia%QUOTES.length], win=VITORIAS[nDia%VITORIAS.length];
+  $("#quoteTxt").textContent=`“${qt}”`; $("#quoteAut").textContent=qa?`— ${qa}`:""; $("#quoteWin").textContent=win;
 
   // Big 3 em destaque: dia de referência (depois das 18h, amanhã — mesma regra da planilha)
   const agora=new Date(), refD=new Date(t0.getTime()+(agora.getHours()>=18?DAY:0)), refK=key(refD), refDia=DIAS[refK]||{};
