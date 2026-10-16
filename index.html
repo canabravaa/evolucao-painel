@@ -335,11 +335,6 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
       </div>
       <div class="stack">
       <div class="tcard">
-        <span class="eyebrow">Até deitar (22:00)</span>
-        <span class="clock" id="bedClock">--:--</span>
-        <span class="muted" style="font-size:.85rem">Celular fora do quarto às 21:00</span>
-      </div>
-      <div class="tcard">
         <span class="eyebrow">De volta ao plano</span>
         <p id="quoteTxt" style="font-size:1.05rem;line-height:1.4;margin:.2rem 0 .1rem;font-weight:600"></p>
         <span class="muted" id="quoteAut" style="font-size:.78rem"></span>
@@ -370,20 +365,12 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
         </div></div>
       <div class="kpis" id="atvKpis"><div class="kpi"><span class="eyebrow">Atividades</span><span class="muted">Aguardando a primeira sincronização da planilha.</span></div></div>
       <div class="atv-bar" id="atvBar" aria-hidden="true"></div>
-      <div class="atv-cols">
-        <div class="log"><h3>⏰ Atrasadas e próximas</h3><div class="tbl"><table><thead><tr><th>Prazo</th><th>Atividade</th><th>Resp.</th></tr></thead><tbody id="atvList"></tbody></table></div></div>
-        <div class="log"><h3>Evolução</h3><div id="atvChart"></div></div>
-      </div>
       <p class="muted" style="font-size:.8rem;margin-top:6px" id="atvSync"></p>
     </div>
     <div>
       <div class="sec-head"><h2>Projetos</h2><span class="eyebrow" id="prjWip"></span></div>
       <div class="prjgrid" id="prjGrid"><div class="kpi"><span class="muted">Aguardando a sincronização da aba Projetos da planilha.</span></div></div>
       <div class="log" id="prjOrfas" hidden style="margin-top:14px"><h3>🔎 Ações abertas há mais de 14 dias sem projeto</h3><p class="muted" style="font-size:.85rem">Ou viram projeto (com resultado esperado), ou são quebradas numa próxima ação concreta.</p><div class="tbl"><table><tbody id="prjOrfasList"></tbody></table></div></div>
-    </div>
-    <div>
-      <div class="sec-head"><h2>Evolução</h2><span class="eyebrow">linha de base → meta</span></div>
-      <div class="charts" id="charts"></div>
     </div>
   </section>
 
@@ -407,6 +394,10 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
       <div class="row" style="justify-content:flex-start;gap:12px">
         <div class="seg" id="alFiltro"><button type="button" data-a="Todas" aria-pressed="true">Todas</button><button type="button" data-a="Trabalho" aria-pressed="false">💼 Trabalho</button><button type="button" data-a="Pessoal" aria-pressed="false">🏠 Pessoal</button></div>
         <label class="muted" style="font-size:.85rem;display:flex;gap:6px;align-items:center"><input type="checkbox" id="alConc"> mostrar concluídas</label>
+      </div>
+      <div class="atv-cols">
+        <div class="log"><h3>⏰ Atrasadas e próximas</h3><div class="tbl"><table><thead><tr><th>Prazo</th><th>Atividade</th><th>Resp.</th></tr></thead><tbody id="atvList"></tbody></table></div></div>
+        <div class="log"><h3>Evolução</h3><div id="atvChart"></div></div>
       </div>
       <div class="tbl"><table><thead><tr><th>Prazo</th><th>Atividade</th><th>Projeto</th><th>Resp.</th><th>Status</th><th></th></tr></thead><tbody id="alLista"></tbody></table></div>
     </div>
@@ -785,9 +776,6 @@ function tick(){
   $("#nextWhat").textContent=next.w; $("#nextClock").textContent=fmt(target-now); $("#nextAt").textContent=`às ${next.t}${tomorrow?" (amanhã)":""}`;
   const p=Math.min(1,Math.max(0,(minNow-290)/(1320-290)));
   $("#dayFill").style.width=(p*100)+"%"; $("#dayNow").style.left=`calc(${p*100}% - 1px)`;
-  const bed=new Date(now.getFullYear(),now.getMonth(),now.getDate(),22)-now;
-  $("#bedClock").textContent = bed>0?`${pad(Math.floor(bed/36e5))}:${pad(Math.floor(bed%36e5/6e4))}`:"hora de dormir";
-  $("#bedClock").style.color = bed<=0?"var(--crit)":bed<36e5?"var(--warn)":"";
   const c=END-now, d=Math.max(0,Math.floor(c/DAY));
   $("#cycClock").innerHTML=`${d}<small>d</small> ${pad(Math.floor(c%DAY/36e5))}<small>h</small> ${pad(Math.floor(c%36e5/6e4))}<small>m</small>`;
   const cw=curWeekOf(today0()); const m=MILES.find(x=>x[0]>=cw)||MILES[MILES.length-1];
@@ -842,14 +830,6 @@ function renderAll(){
   $("#kpiNote").textContent=`${inCycle.length} dias registrados no ciclo`;
   $("#kpis").innerHTML=K.map(k=>`<div class="kpi"><span class="eyebrow">${k.l}</span><span class="v num">${k.v}</span><span class="delta ${k.c}">${k.d}</span>${k.dots?`<div class="dots">${k.dots.map(v=>`<i class="${v||""}"></i>`).join("")}</div>`:""}</div>`).join("");
 
-  const last=ks.slice(-14);
-  $("#charts").innerHTML=[
-    chart("Tela total por dia","menos = melhor",last.map(k=>({l:lbl(k),v:DIAS[k].tela??null})),0,360,292,180,dur,""),
-    chart("Pegadas no celular por dia","menos = melhor",last.map(k=>({l:lbl(k),v:DIAS[k].pegadas??null})),0,160,122,90,v=>Math.round(v),""),
-    chart("Tela depois das 21:00","meta: zero",last.map(k=>({l:lbl(k),v:DIAS[k].pos21??null})),0,60,45,0,v=>Math.round(v)," min"),
-    chart("Big 3 concluídos","linha cheia: trabalho · tracejada: pessoal",last.map(k=>({l:lbl(k),v:DIAS[k].big3Feitos??null,v2:DIAS[k].big3PFeitos??null})),0,3,1,2,v=>String(Math.round(v*10)/10).replace(".",","),""),
-  ].join("");
-
   // Ciclo
   let sum=0,cnt=0,hit=0;
   const WK=[["29/09–04/10"],["05–11/10"],["12–18/10"],["19–25/10"],["26/10–01/11"],["02–08/11","meio"],["09–15/11"],["16–22/11"],["23–29/11"],["30/11–06/12"],["07–13/12"],["14–20/12","fim"],["21–27/12","balanço"]];
@@ -859,7 +839,7 @@ function renderAll(){
     return `<div class="wk${n===cw?" now":""}"><span class="n">S${n}${tag?`<span class="tag">${tag}</span>`:""}</span><span class="d">${d}</span><div class="bar">${n<13?`<span class="l85"></span>`:""}${p!=null?`<i style="height:${Math.min(100,p)}%;background:${col}"></i>`:""}</div><span class="s num">${n===13?"balanço":p!=null?p+"%"+(n===cw?" · em curso":""):"—"}</span></div>`;}).join("");
   $("#avg").textContent=cnt?Math.round(sum/cnt)+"%":"—"; $("#onTarget").textContent=`${hit} de ${cnt}`;
   const IND=[
-    [["Noites com deitar até 22:00","esforço","~0/7",`${camaOk}/${camaK.length}`,"≥ 5/7"],["Tela depois das 21:00","esforço","~45 min",p21?p21.v+" min":"—","0 min"],["Primeiro uso do celular","esforço","04:55",c1?c1.v:"—","≥ 05:10"],["HRV (valor)","resultado","a medir",lastVal("hrvV")?lastVal("hrvV").v:"—","em alta"]],
+    [["Noites com deitar até 22:00","esforço","~0/7",`${camaOk}/${camaK.length}`,"≥ 5/7"],["Tela depois das 21:00","esforço","~45 min",p21?p21.v+" min":"—","0 min"],["Tela total por dia","esforço","4h52",tel!=null?dur(tel):"—","≤ 3h"],["HRV (valor)","resultado","a medir",lastVal("hrvV")?lastVal("hrvV").v:"—","em alta"]],
     [["Big 3 trabalho (média)","resultado","1/3",b3!=null?(Math.round(b3*10)/10)+"/3":"—","≥ 2/3"],["Big 3 pessoal (média)","resultado","—",b3p!=null?(Math.round(b3p*10)/10)+"/3":"—","≥ 2/3"],["Pegadas no celular por dia","esforço","122",peg!=null?Math.round(peg):"—","< 90"],["X + Instagram por dia","esforço","~63 min",soc!=null?Math.round(soc)+" min":"—","≤ 30 min"],["Revisões semanais feitas","esforço","0",`${inCycle.filter(k=>DIAS[k].rev==="y").length}/12`,"12/12"]],
     [["Pendências resolvidas","resultado","0/5","ver Obsidian","5/5"],["Serviços renegociados","resultado","0/3","ver Obsidian","3/3"],["Ações financeiras feitas","esforço","0",String(inCycle.filter(k=>DIAS[k].fin==="y").length),"12"]],
   ];
