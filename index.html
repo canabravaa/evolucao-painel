@@ -382,6 +382,12 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
       </div></div>
     <p class="note">Fonte única: planilha <strong>Atividades FY26</strong>. <b>✓ Concluir</b> e <b>↺ Reabrir</b> aqui gravam o status direto na planilha (pelo vigia do computador; com o Excel aberto, assim que ele fechar). Para incluir atividades ou marcar BIG 3 = SIM, use a planilha.</p>
 
+    <!-- fixo em todas as visões (veio da aba Hoje em 16/10) -->
+    <div class="atv-cols">
+      <div class="log"><h3>⏰ Atrasadas e próximas</h3><div class="tbl"><table><thead><tr><th>Prazo</th><th>Atividade</th><th>Resp.</th></tr></thead><tbody id="atvList"></tbody></table></div></div>
+      <div class="log"><h3>Evolução</h3><div id="atvChart"></div></div>
+    </div>
+
     <div id="atvV-big3" style="display:grid;gap:14px">
       <div class="sec-head" style="margin:0"><h3 id="ab3Tit">Big 3</h3><div class="row"><button type="button" class="btn" id="ab3Prev">←</button><button type="button" class="btn" id="ab3Hoje">Hoje</button><button type="button" class="btn" id="ab3Next">→</button></div></div>
       <div class="b3cards">
@@ -394,10 +400,6 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
       <div class="row" style="justify-content:flex-start;gap:12px">
         <div class="seg" id="alFiltro"><button type="button" data-a="Todas" aria-pressed="true">Todas</button><button type="button" data-a="Trabalho" aria-pressed="false">💼 Trabalho</button><button type="button" data-a="Pessoal" aria-pressed="false">🏠 Pessoal</button></div>
         <label class="muted" style="font-size:.85rem;display:flex;gap:6px;align-items:center"><input type="checkbox" id="alConc"> mostrar concluídas</label>
-      </div>
-      <div class="atv-cols">
-        <div class="log"><h3>⏰ Atrasadas e próximas</h3><div class="tbl"><table><thead><tr><th>Prazo</th><th>Atividade</th><th>Resp.</th></tr></thead><tbody id="atvList"></tbody></table></div></div>
-        <div class="log"><h3>Evolução</h3><div id="atvChart"></div></div>
       </div>
       <div class="tbl"><table><thead><tr><th>Prazo</th><th>Atividade</th><th>Projeto</th><th>Resp.</th><th>Status</th><th></th></tr></thead><tbody id="alLista"></tbody></table></div>
     </div>
@@ -552,7 +554,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     </div>
   </section>
 
-  <footer><b class="num">versão 09/10 · frase do dia</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 16/10 · Hoje enxuta</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
