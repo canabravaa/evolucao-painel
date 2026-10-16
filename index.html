@@ -623,17 +623,11 @@ const SEED_IND=[
   ["tela","Tela total","📱 Celular","numero","min","menor",180,240],
   ["social","X + Instagram","📱 Celular","numero","min","menor",30,45],
   ["pos21","Tela depois das 21h","📱 Celular","numero","min","menor",0,15],
-  ["cel1","1ª abertura de WhatsApp/redes","📱 Celular","hora","","maior","07:00","06:00"], // o app de HRV não conta: mede se o celular invadiu a manhã
   ["hrvV","HRV","❤️ Saúde","numero","","maior",65,55],
   ["deitar","Horário de deitar","😴 Sono","hora","","menor","22:00","22:30"],
   ["acordar","Horário de acordar","😴 Sono","hora","","menor","04:50","05:10"],
   ["sonoH","Horas de sono (calculado)","😴 Sono","numero","h","maior",7,6.5,"sono"],
-  ["enM","Energia · manhã","⚡ Energia e estresse","numero","1–5","maior",4,3],
-  ["enT","Energia · tarde","⚡ Energia e estresse","numero","1–5","maior",4,3],
-  ["enN","Energia · noite","⚡ Energia e estresse","numero","1–5","maior",4,3],
-  ["esM","Estresse · manhã","⚡ Energia e estresse","numero","1–5","menor",2,3],
-  ["esT","Estresse · tarde","⚡ Energia e estresse","numero","1–5","menor",2,3],
-  ["esN","Estresse · noite","⚡ Energia e estresse","numero","1–5","menor",2,3],
+  // 16/10: saíram 1ª abertura de WhatsApp/redes (cel1) e energia/estresse (enM…esN), que não eram registrados
 ].map(([id,nome,grupo,tipo,un,sentido,meta,am,calc],i)=>({id,nome,grupo,tipo,un,sentido,meta,am,ordem:i,...(calc?{calc}:{})}));
 let INDS = SEED_IND.slice();
 const hAtivos = () => HABITOS.filter(h=>h.status==="ativo");
@@ -744,6 +738,7 @@ const today0 = () => { const t = new Date(); t.setHours(0,0,0,0); return t; };
 const val = v => v==="y"?1:v==="p"?0.5:0;
 const toMin = s => { if(!s) return null; const [a,b]=s.split(":").map(Number); return a*60+b; };
 const hm = v => `${pad(Math.floor(v/60))}:${pad(Math.round(v%60))}`;
+const dur = v => `${Math.floor(Math.round(v)/60)}h${pad(Math.round(v)%60)}`; // duração em minutos → 4h48
 const sortedKeys = () => Object.keys(DIAS).sort();
 // ================= NOTA DO DIA (critérios v0.2) =================
 // Hábitos 60 · Big 3 trabalho 20 · Big 3 pessoal 10 · Celular 10. ✓ = cheio, ~ = metade, ✗ ou ? = zero.
@@ -832,12 +827,11 @@ function renderAll(){
   $("#progTxt").textContent=`Dia ${el} de ${total} · Semana ${Math.min(cw,12)} de 12 · ${Math.round(el/total*100)}% do ciclo`;
   const ks=sortedKeys(), inCycle=ks.filter(k=>k>="2026-09-29");
   const camaK=inCycle.filter(k=>DIAS[k].cama); const camaOk=camaK.filter(k=>DIAS[k].cama==="y").length;
-  const c1=lastVal("cel1"), b3=avgLast("big3Feitos"), b3p=avgLast("big3PFeitos"), notas=inCycle.filter(k=>DIAS[k].nota==="y").length;
+  const tel=avgLast("tela"), b3=avgLast("big3Feitos"), b3p=avgLast("big3PFeitos"), notas=inCycle.filter(k=>DIAS[k].nota==="y").length;
   const p21=lastVal("pos21"), peg=avgLast("pegadas"), soc=avgLast("social"), sc=weekScores(), scNow=sc[Math.min(cw,12)-1];
-  const c1d = c1&&c1.prev ? toMin(c1.v)-toMin(c1.prev) : null;
   const K=[
     {l:"Noites até 22:00",v:`${camaOk}<small>/ ${camaK.length}</small>`,d:`sequência atual: ${streak("cama")}`,c:camaOk?"up":"flat",dots:camaK.slice(-14).map(k=>DIAS[k].cama)},
-    {l:"Primeiro uso do celular",v:c1?c1.v:"—",d:c1d!=null?`${c1d>=0?"▲ +":"▼ "}${hm(Math.abs(c1d))} vs. anterior · meta ≥ 05:10`:"meta ≥ 05:10",c:c1&&toMin(c1.v)>=310?"up":"down"},
+    {l:"Tela total",v:tel!=null?dur(tel):"—",d:"média · base 4h52 · meta ≤ 3h",c:tel!=null&&tel<=180?"up":"down"},
     {l:"Big 3 · trabalho | pessoal",v:`${b3!=null?String(Math.round(b3*10)/10).replace(".",","):"—"}<small>|</small> ${b3p!=null?String(Math.round(b3p*10)/10).replace(".",","):"—"}`,d:"média 7 dias · meta ≥ 2 de 3 em cada",c:(b3>=2&&(b3p==null||b3p>=2))?"up":"flat"},
     {l:"Dias com nota",v:`${notas}<small>/ ${Math.max(el,1)}</small>`,d:"meta 6 de 7",c:notas/Math.max(el,1)>=6/7?"up":"flat"},
     {l:"Tela após 21:00",v:p21?`${p21.v}<small>min</small>`:"—",d:p21?`${lbl(p21.k)} · meta 0`:"meta 0",c:p21&&p21.v===0?"up":"down"},
@@ -850,7 +844,7 @@ function renderAll(){
 
   const last=ks.slice(-14);
   $("#charts").innerHTML=[
-    chart("Primeiro uso do celular","mais tarde = melhor",last.map(k=>({l:lbl(k),v:toMin(DIAS[k].cel1)})),270,480,295,310,hm,""),
+    chart("Tela total por dia","menos = melhor",last.map(k=>({l:lbl(k),v:DIAS[k].tela??null})),0,360,292,180,dur,""),
     chart("Pegadas no celular por dia","menos = melhor",last.map(k=>({l:lbl(k),v:DIAS[k].pegadas??null})),0,160,122,90,v=>Math.round(v),""),
     chart("Tela depois das 21:00","meta: zero",last.map(k=>({l:lbl(k),v:DIAS[k].pos21??null})),0,60,45,0,v=>Math.round(v)," min"),
     chart("Big 3 concluídos","linha cheia: trabalho · tracejada: pessoal",last.map(k=>({l:lbl(k),v:DIAS[k].big3Feitos??null,v2:DIAS[k].big3PFeitos??null})),0,3,1,2,v=>String(Math.round(v*10)/10).replace(".",","),""),
