@@ -922,7 +922,7 @@ function renderObra(){
     svgEl("rect",{x:X,y,width:W,height:FH,fill:has?(hi?"var(--lit-soft)":"var(--surface)"):"transparent",stroke:cur?"var(--lit)":fut?"var(--idle)":"var(--plan)","stroke-width":cur?2.5:1.2,"stroke-dasharray":fut?"5 4":"none"},svg);
     if(has) svgEl("rect",{x:X,y:y+FH-4,width:W,height:4,fill:hi?"var(--lit)":"var(--plan)"},svg);
     const acende=has?Math.round(v/100*6):0;
-    for(let k=0;k<6;k++) svgEl("rect",{x:X+46+k*24,y:y+8,width:14,height:FH-17,fill:k<acende?"var(--lit)":"transparent",stroke:fut?"var(--idle)":"var(--plan)","stroke-width":.9,"stroke-dasharray":fut?"2 2":"none"},svg);
+    for(let k=0;k<6;k++) svgEl("rect",{x:X+36+k*22,y:y+8,width:14,height:FH-17,fill:k<acende?"var(--lit)":"transparent",stroke:fut?"var(--idle)":"var(--plan)","stroke-width":.9,"stroke-dasharray":fut?"2 2":"none"},svg);
     svgEl("text",{x:X+8,y:y+FH/2+4,"font-family":"var(--f-mono)","font-size":11,fill:fut?"var(--muted)":"var(--ink)"},svg,"S"+i);
     svgEl("text",{x:X+W-6,y:y+FH/2+4,"text-anchor":"end","font-family":"var(--f-mono)","font-size":11,fill:"var(--muted)"},svg,has?v+"%"+(cur?"*":""):(!fut?"s/ reg.":""));
   }
