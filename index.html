@@ -906,7 +906,8 @@ function renderObra(){
   $("#obPillars").innerHTML=GOALS.map(g=>{
     const ws=obraScores(g.tactics.map(t=>t[0])), vs=ws.slice(0,Math.min(cw,12)).filter(v=>v!=null), p=vs.length?Math.round(vs.reduce((a,b)=>a+b,0)/vs.length):null;
     const cls=(v,i)=>[(i+1>cw||v==null)?"":v>=85?"hi":v>=50?"md":"lo", i+1===cw?"cur":""].join(" ");
-    return `<div class="ob-pillar"><span class="eyebrow">${g.icon} ${g.name}</span><span class="pct" style="color:${p!=null&&p>=85?"var(--lit)":"inherit"}">${p==null?"—":p+"%"}</span><div class="ob-cells">${ws.map((v,i)=>`<i class="${cls(v,i)}" title="S${i+1}: ${v==null?"sem registro":v+"%"}"></i>`).join("")}</div><p class="muted" style="font-size:.85rem">${g.target}</p><ul>${g.tactics.map(t=>`<li>${t[0]} · ${t[1]}</li>`).join("")}</ul></div>`;
+    const ativas=new Set(HABITOS.filter(h=>h.tatica&&h.status==="ativo").map(h=>h.tatica));
+    return `<div class="ob-pillar"><span class="eyebrow">${g.icon} ${g.name}</span><span class="pct" style="color:${p!=null&&p>=85?"var(--lit)":"inherit"}">${p==null?`<span class="muted" style="font-size:1rem">sem tática ativa</span>`:p+"%"}</span><div class="ob-cells">${ws.map((v,i)=>`<i class="${cls(v,i)}" title="S${i+1}: ${v==null?"sem registro":v+"%"}"></i>`).join("")}</div><p class="muted" style="font-size:.85rem">${g.target}</p><ul>${g.tactics.map(t=>ativas.has(t[0])?`<li>${t[0]} · ${t[1]}</li>`:`<li style="opacity:.55">${t[0]} · ${t[1]} <i>(fora da marcação)</i></li>`).join("")}</ul></div>`;
   }).join("");
 
   // prédio
