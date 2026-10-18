@@ -1083,7 +1083,8 @@ function chart(title,better,pts,yMin,yMax,base,goal,fy,unit){
 }
 
 // ================= ATIVIDADES (resumo da planilha Atividades FY26) =================
-document.querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>{ ATVF=b.dataset.a; document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",String(x===b))); renderAtv(); }));
+// só os botões de filtro (data-a); os de visão (data-v) têm o próprio controle e não podem zerar o filtro
+document.querySelectorAll(".seg button[data-a]").forEach(b=>b.addEventListener("click",()=>{ ATVF=b.dataset.a; document.querySelectorAll(".seg button[data-a]").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.a===ATVF))); renderAtv(); }));
 function renderAtv(){
   if(!ATV) return;
   const abas = ATVF==="Todas" ? ["Trabalho","Pessoal"] : [ATVF];
