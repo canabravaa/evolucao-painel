@@ -347,6 +347,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
 
   <nav class="tabs" aria-label="Seções"><div class="tabs-in" role="tablist" id="tablist">
     <button role="tab" data-t="hoje" aria-selected="true">Hoje</button>
+    <button role="tab" data-t="diario" aria-selected="false">Diário</button>
     <button role="tab" data-t="atividades" aria-selected="false">Atividades</button>
     <button role="tab" data-t="indicadores" aria-selected="false">Indicadores</button>
     <button role="tab" data-t="habitos" aria-selected="false">Hábitos</button>
@@ -593,6 +594,44 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
   </section>
 
   <!-- OBRA: visão visual do ciclo (mesmos dados da nota de execução semanal da aba Ciclo) -->
+  <!-- DIÁRIO (desde 03/11): mesma estrutura da nota diária do Obsidian; o vigia do desktop grava em Diário/Notas AAAAMMDD.md -->
+  <section class="panel" id="p-diario" hidden>
+    <div class="sec-head"><h2 id="dTitle">Diário</h2><span class="eyebrow" id="dSync">—</span></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button type="button" class="btn" id="dPrev" aria-label="Dia anterior">←</button>
+      <input type="date" id="dData" class="btn" style="font-weight:500">
+      <button type="button" class="btn" id="dNext" aria-label="Próximo dia">→</button>
+      <button type="button" class="btn" id="dHoje">Hoje</button>
+    </div>
+    <div class="log" id="dForm">
+      <h3>⚡ Essencial <span class="muted" style="font-weight:400;font-size:.8rem">(3 min — sempre)</span></h3>
+      <div class="fields">
+        <div class="field"><label for="d_deitei">Deitei (noite anterior)</label><input type="time" id="d_deitei" data-ind="deitar"></div>
+        <div class="field"><label for="d_acordei">Acordei</label><input type="time" id="d_acordei" data-ind="acordar"></div>
+        <div class="field"><label for="d_hrv">HRV</label><input type="number" inputmode="numeric" id="d_hrv" data-ind="hrvV"></div>
+        <div class="field"><label for="d_sono">Sono (1–5)</label><select id="d_sono"><option value=""></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+        <div class="field"><label for="d_manha">Manhã</label><select id="d_manha"><option value=""></option><option>completa</option><option>mínima</option><option>perdida</option></select></div>
+        <div class="field"><label for="d_dieta">Dieta (1–5)</label><select id="d_dieta"><option value=""></option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div>
+      </div>
+      <div class="field"><label for="d_treino">Treino</label><input type="text" id="d_treino" placeholder="ex.: corrida 10 km Z2"></div>
+      <div class="field"><label>Suplementos</label><span style="display:flex;gap:16px;flex-wrap:wrap"><label style="text-transform:none;font-size:.9rem;letter-spacing:0;font-family:inherit;color:var(--ink)"><input type="checkbox" id="d_supM"> manhã</label><label style="text-transform:none;font-size:.9rem;letter-spacing:0;font-family:inherit;color:var(--ink)"><input type="checkbox" id="d_supT"> tarde</label><label style="text-transform:none;font-size:.9rem;letter-spacing:0;font-family:inherit;color:var(--ink)"><input type="checkbox" id="d_supC"> creatina</label></span></div>
+      <div class="field"><label>Big 3 de hoje (da planilha)</label><div id="dBig3" class="muted" style="font-size:.9rem">—</div></div>
+      <div class="field"><label for="d_frase">Uma frase sobre o dia</label><input type="text" id="d_frase"></div>
+    </div>
+    <div class="log">
+      <h3>📝 Livre <span class="muted" style="font-weight:400;font-size:.8rem">(quando houver tempo)</span></h3>
+      <div class="field"><textarea id="d_livre" rows="10" placeholder="Escreva à vontade…"></textarea></div>
+    </div>
+    <div class="log">
+      <h3>🌙 Fechamento</h3>
+      <div class="field"><label for="d_prev">⚡ Tempo previsto × real</label><input type="text" id="d_prev"></div>
+      <div class="field"><label for="d_bem">Funcionou bem</label><textarea id="d_bem" rows="2"></textarea></div>
+      <div class="field"><label for="d_mal">Funcionou mal</label><textarea id="d_mal" rows="2"></textarea></div>
+      <div class="field"><label for="d_ajuste">Ajuste para amanhã</label><textarea id="d_ajuste" rows="2"></textarea></div>
+    </div>
+    <p class="note">Salva sozinho enquanto você escreve. Deitei, acordei e HRV também vão para os Indicadores. Quando o PC estiver ligado, o vigia copia a nota para <b>Diário/Notas AAAAMMDD.md</b> no Obsidian (dentro de um bloco "📱 Do painel"; o que você escrever direto no Obsidian fora desse bloco não é tocado).</p>
+  </section>
+
   <section class="panel" id="p-obra" hidden>
     <div class="sec-head"><h2>Obra 12 semanas</h2><span class="eyebrow">cada semana é uma laje · luz acesa = táticas cumpridas</span></div>
     <div class="ob-main">
@@ -618,7 +657,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     <p class="note">Mede execução das táticas (hábitos T1–T10), não resultado. A semana em curso conta só os dias até ontem. Fonte: os mesmos registros da aba Ciclo.</p>
   </section>
 
-  <footer><b class="num">versão 16/10 · aba Obra · quadros na Lista</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 03/11 · aba Diário</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
@@ -819,7 +858,7 @@ function curWeekOf(d){ return d < START ? 0 : Math.min(13, Math.floor((d-START)/
 
 // ================= ABAS =================
 const tabs = [...document.querySelectorAll("#tablist button")];
-function show(t){ tabs.forEach(b=>b.setAttribute("aria-selected",String(b.dataset.t===t))); document.querySelectorAll(".panel").forEach(p=>p.hidden=p.id!=="p-"+t); try{history.replaceState(null,"","#"+t);}catch(e){} }
+function show(t){ tabs.forEach(b=>b.setAttribute("aria-selected",String(b.dataset.t===t))); document.querySelectorAll(".panel").forEach(p=>p.hidden=p.id!=="p-"+t); try{history.replaceState(null,"","#"+t);}catch(e){} if(t==="diario") abrirDiario(); }
 tabs.forEach(b=>b.addEventListener("click",()=>show(b.dataset.t)));
 const h0 = location.hash.slice(1); if (tabs.some(b=>b.dataset.t===h0)) show(h0);
 
@@ -1564,6 +1603,66 @@ function buildWheel(){
 }
 $("#saveWheel").addEventListener("click",async()=>{ const t=new Date(); WHEEL={v:WHEEL.v,ex:false,data:`${pad(t.getDate())}/${pad(t.getMonth()+1)}/${t.getFullYear()}`,atualizado:serverTimestamp()};
   try{ await setDoc(doc(db,"users",UID,"roda","ciclo1"),WHEEL); $("#wheelMsg").textContent="Avaliação salva"; drawWheel(); } catch(e){ $("#wheelMsg").textContent="Não salvou: "+e.code; } });
+
+// ---------- Diário (03/11): nota do dia no painel → users/{uid}/diario/{AAAA-MM-DD} → vigia grava no Obsidian
+const D_TXT=["deitei","acordei","hrv","sono","manha","dieta","treino","frase","livre","prev","bem","mal","ajuste"], D_CHK=["supM","supT","supC"];
+const SEMANA=["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"];
+let DK=null, DTIMER=null, DCARREGANDO=false;
+const dIn=id=>$("#d_"+id);
+function abrirDiario(){ if(!UID){ setTimeout(abrirDiario,500); return; } if(!DK) carregarDiario(key(today0())); else desenharBig3(); }
+async function carregarDiario(k){
+  if(DTIMER){ clearTimeout(DTIMER); DTIMER=null; await salvarDiario(); }
+  DK=k; $("#dData").value=k; DCARREGANDO=true;
+  const [a,m,d]=k.split("-"); $("#dTitle").textContent=`Diário · ${d}/${m} · ${SEMANA[new Date(k+"T12:00:00").getDay()]}`;
+  $("#dSync").textContent="carregando…";
+  let v={}; try{ const s=await getDoc(doc(db,"users",UID,"diario",k)); v=s.exists()?s.data():{}; }catch(e){ $("#dSync").textContent="Não carregou: "+e.code; }
+  // horários e HRV já registrados nos Indicadores aparecem preenchidos
+  const ontem=key(new Date(new Date(k+"T12:00:00").getTime()-DAY));
+  const pre={deitei:DIAS[ontem]?.deitar||"", acordei:DIAS[k]?.acordar||"", hrv:DIAS[k]?.hrvV??""};
+  D_TXT.forEach(id=>dIn(id).value=v[id]??pre[id]??""); D_CHK.forEach(id=>dIn(id).checked=!!v[id]);
+  DCARREGANDO=false; desenharBig3();
+  $("#dSync").textContent=!v.atualizadoMs?"novo":v.pendente?"salvo · aguardando o PC para ir ao Obsidian":"salvo · já está no Obsidian";
+}
+function big3Do(k){ const x=DIAS[k]||{}; const l=(t,s)=>(t||[]).map((d,i)=>d?{d,ok:s?.[i]==="y"}:null).filter(Boolean); return {t:l(x.big3,x.big3St), p:l(x.big3P,x.big3PSt)}; }
+function desenharBig3(){ if(!DK) return; const b=big3Do(DK); const li=(a)=>a.map((x,i)=>`${i+1}. ${x.ok?"✅ ":""}${x.d}`).join("<br>");
+  $("#dBig3").innerHTML=(b.t.length||b.p.length)?`${b.t.length?`<b>💼 Trabalho</b><br>${li(b.t)}`:""}${b.p.length?`<br><b>🏠 Pessoal</b><br>${li(b.p)}`:""}`:"Sem Big 3 neste dia."; }
+function mdDiario(k,v){
+  const [a,m,d]=k.split("-"), L=[], s=x=>String(x??"").trim(), b=big3Do(k);
+  L.push(`### 📱 Do painel · ${d}/${m}/${a} — ${SEMANA[new Date(k+"T12:00:00").getDay()]}`,"","#### ⚡ Essencial");
+  const lin1=[["Deitei",v.deitei],["Acordei",v.acordei],["HRV",v.hrv],["Sono (1–5)",v.sono]].filter(x=>s(x[1])).map(x=>`${x[0]}: ${s(x[1])}`).join(" · ");
+  if(lin1) L.push("- "+lin1);
+  if(s(v.manha)) L.push(`- Manhã: ${v.manha}`);
+  if(s(v.treino)) L.push(`- Treino: ${s(v.treino)}`);
+  const sup=[["manhã",v.supM],["tarde",v.supT],["creatina",v.supC]].map(x=>`[${x[1]?"x":" "}] ${x[0]}`).join(" ");
+  L.push(`- ${s(v.dieta)?`Dieta (1–5): ${v.dieta} · `:""}Suplementos: ${sup}`);
+  if(b.t.length||b.p.length){ L.push("- **Big 3 de hoje** (planilha):"); b.t.forEach((x,i)=>L.push(`  ${i+1}. 💼 ${x.d}${x.ok?" ✅":""}`)); b.p.forEach((x,i)=>L.push(`  ${i+1}. 🏠 ${x.d}${x.ok?" ✅":""}`)); }
+  if(s(v.frase)) L.push(`- **Uma frase sobre o dia:** ${s(v.frase)}`);
+  if(s(v.livre)) L.push("","#### 📝 Livre",s(v.livre));
+  const fe=[["Big 3 feitos",(b.t.length?`${b.t.filter(x=>x.ok).length}/${b.t.length} trabalho · ${b.p.filter(x=>x.ok).length}/${b.p.length} pessoal`:"")],["⚡ Previsto × real",v.prev],["Funcionou bem",v.bem],["Funcionou mal",v.mal],["Ajuste para amanhã",v.ajuste]].filter(x=>s(x[1]));
+  if(fe.length){ L.push("","#### 🌙 Fechamento"); fe.forEach(x=>L.push(`- ${x[0]}: ${s(x[1])}`)); }
+  return L.join("\n");
+}
+async function salvarDiario(){
+  if(!UID||!DK) return; DTIMER=null;
+  const v={}; D_TXT.forEach(id=>v[id]=dIn(id).value); D_CHK.forEach(id=>v[id]=dIn(id).checked);
+  const vazio=D_TXT.every(id=>!String(v[id]).trim())&&D_CHK.every(id=>!v[id]); if(vazio) return;
+  try{ await setDoc(doc(db,"users",UID,"diario",DK),{...v,data:DK,md:mdDiario(DK,v),pendente:true,atualizadoMs:Date.now()},{merge:true});
+    $("#dSync").textContent=`salvo às ${new Date().toTimeString().slice(0,5)} · vai para o Obsidian quando o PC estiver ligado`; }
+  catch(e){ $("#dSync").textContent="Não salvou: "+e.code; }
+}
+document.querySelectorAll("#p-diario input, #p-diario textarea, #p-diario select").forEach(el=>{
+  if(el.id==="dData") return;
+  el.addEventListener("input",()=>{ if(DCARREGANDO) return; $("#dSync").textContent="escrevendo…"; clearTimeout(DTIMER); DTIMER=setTimeout(salvarDiario,1500); });
+  // deitei / acordei / HRV também alimentam os Indicadores (deitei = noite anterior)
+  if(el.dataset.ind) el.addEventListener("change",async()=>{ if(DCARREGANDO||!DK) return; const id=el.dataset.ind, v=el.value;
+    const k=id==="deitar"?key(new Date(new Date(DK+"T12:00:00").getTime()-DAY)):DK;
+    await salvarInd(k,id,v); if(id==="hrvV"&&v) await setDoc(doc(db,"users",UID,"dias",DK),{hrv:"y"},{merge:true}); });
+});
+const dMove=n=>carregarDiario(key(new Date(new Date(DK+"T12:00:00").getTime()+n*DAY)));
+$("#dPrev").addEventListener("click",()=>dMove(-1)); $("#dNext").addEventListener("click",()=>dMove(1));
+$("#dHoje").addEventListener("click",()=>carregarDiario(key(today0())));
+$("#dData").addEventListener("change",e=>{ if(e.target.value) carregarDiario(e.target.value); });
+window.addEventListener("beforeunload",()=>{ if(DTIMER) salvarDiario(); });
 </script>
 </body>
 </html>
