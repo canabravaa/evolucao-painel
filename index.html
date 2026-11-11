@@ -228,6 +228,21 @@ nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:v
 .ob-stamp .wide{grid-column:1/-1;border-right:0}
 .ob-stamp .v{font-family:var(--f-display);font-weight:700;font-size:1.5rem;line-height:1.1;font-variant-numeric:tabular-nums}
 .ob-stamp .here .v{color:var(--lit)}
+/* Mínimo (fase base) */
+.m-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.m-item{appearance:none;display:grid;gap:4px;justify-items:start;text-align:left;padding:18px 16px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:inherit;cursor:pointer;min-height:112px}
+.m-item .ic{font-size:1.9rem;line-height:1}
+.m-item b{font-family:var(--f-display);font-size:1.1rem}
+.m-item small{color:var(--muted);font-size:.8rem}
+.m-item.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--surface))}
+.m-item.on b::after{content:" ✓";color:var(--accent)}
+.m-bricks{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.m-bricks div{display:grid;gap:4px;justify-items:center;font-family:var(--f-mono);font-size:.7rem;color:var(--muted)}
+.m-bricks i{display:block;width:100%;height:30px;border-radius:4px;border:1.5px solid var(--line)}
+.m-bricks i.ok{background:#D98B1F;border-color:#D98B1F}
+.m-bricks i.meio{background:rgba(217,139,31,.25);border-color:#D98B1F}
+.m-bricks i.hoje{outline:2px solid var(--accent);outline-offset:2px}
+.m-bricks i.fut{border-style:dashed}
 .ob-msg{font-family:var(--f-display);font-weight:700;font-size:1.6rem;line-height:1.15}
 .ob-msg b{color:var(--lit)}
 .ob-phases{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
@@ -346,7 +361,8 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
   </header>
 
   <nav class="tabs" aria-label="Seções"><div class="tabs-in" role="tablist" id="tablist">
-    <button role="tab" data-t="hoje" aria-selected="true">Hoje</button>
+    <button role="tab" data-t="minimo" aria-selected="true">Mínimo</button>
+    <button role="tab" data-t="hoje" aria-selected="false">Hoje</button>
     <button role="tab" data-t="diario" aria-selected="false">Diário</button>
     <button role="tab" data-t="atividades" aria-selected="false">Atividades</button>
     <button role="tab" data-t="indicadores" aria-selected="false">Indicadores</button>
@@ -357,8 +373,24 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     <button role="tab" data-t="obra" aria-selected="false">Obra</button>
   </div></nav>
 
+  <!-- MÍNIMO (11/11): tela inicial da fase base · 4 itens + 1 frase · dia válido = 3 de 4 · laje acesa = 5 dias válidos -->
+  <section class="panel" id="p-minimo">
+    <div class="sec-head"><h2 id="mTitle">Mínimo de hoje</h2><span class="eyebrow" id="mSub">fase base · 3 de 4 = dia válido</span></div>
+    <div class="m-grid" id="mItens"></div>
+    <div class="log">
+      <div class="field"><label for="mFrase">Uma frase sobre o dia</label><input type="text" id="mFrase" placeholder="vai para o Diário"></div>
+      <span class="muted" id="mFraseMsg" style="font-size:.8rem"></span>
+    </div>
+    <div class="log">
+      <h3>🧱 Laje desta semana <span class="muted" id="mLajeTxt" style="font-weight:400;font-size:.85rem"></span></h3>
+      <div class="m-bricks" id="mBricks"></div>
+      <p class="muted" id="mStreak" style="font-size:.88rem;margin:0"></p>
+    </div>
+    <p class="note">Versões mínimas: treino conforme o plano (domingo de descanso conta) · meditação 5 min · leitura 10 páginas · deitar até 22:30. Toque de novo para desfazer. As outras abas continuam iguais.</p>
+  </section>
+
   <!-- HOJE -->
-  <section class="panel" id="p-hoje">
+  <section class="panel" id="p-hoje" hidden>
     <div class="timers">
       <div class="tcard hero">
         <div class="nota-top">
@@ -637,7 +669,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     <div class="ob-main">
       <div class="ob-sheet">
         <svg id="obSvg" viewBox="0 0 460 560" role="img" aria-label="Prédio de 12 lajes com a execução de cada semana do ciclo"></svg>
-        <div class="ob-lg"><span><i style="background:var(--lit)"></i>≥ 85%</span><span><i style="background:var(--lit-soft)"></i>abaixo de 85%</span><span><i style="border-style:dashed"></i>a construir</span></div>
+        <div class="ob-lg"><span><i style="background:var(--lit)"></i>≥ 85%</span><span><i style="background:var(--lit-soft)"></i>abaixo de 85%</span><span><i style="border-style:dashed"></i>a construir</span><span><i style="background:var(--lit);height:4px"></i>viga de reforço (11/11)</span><span>S7+: 1 tijolo = 1 dia com 3 de 4</span></div>
       </div>
       <div class="ob-side">
         <div class="ob-stamp">
@@ -657,7 +689,7 @@ footer{color:var(--muted);font-size:.82rem;border-top:1px solid var(--line);padd
     <p class="note">Mede execução das táticas (hábitos T1–T10), não resultado. A semana em curso conta só os dias até ontem. Fonte: os mesmos registros da aba Ciclo.</p>
   </section>
 
-  <footer><b class="num">versão 03/11 · aba Diário</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
+  <footer><b class="num">versão 11/11 · fase base (Mínimo + Obra reforço)</b> · Projeto Evolução · dados no Firebase, acesso só pelo login autorizado · Fonte do plano: Obsidian (Direção/Ciclo 1 - 12 Semanas)</footer>
 </div>
 
 <script type="module">
@@ -860,7 +892,7 @@ function curWeekOf(d){ return d < START ? 0 : Math.min(13, Math.floor((d-START)/
 const tabs = [...document.querySelectorAll("#tablist button")];
 function show(t){ tabs.forEach(b=>b.setAttribute("aria-selected",String(b.dataset.t===t))); document.querySelectorAll(".panel").forEach(p=>p.hidden=p.id!=="p-"+t); try{history.replaceState(null,"","#"+t);}catch(e){} if(t==="diario") abrirDiario(); }
 tabs.forEach(b=>b.addEventListener("click",()=>show(b.dataset.t)));
-const h0 = location.hash.slice(1); if (tabs.some(b=>b.dataset.t===h0)) show(h0);
+const h0 = location.hash.slice(1); show(tabs.some(b=>b.dataset.t===h0) ? h0 : "minimo");
 
 // ================= CRONÔMETROS =================
 function schedule(dow){
@@ -907,17 +939,58 @@ function obraScores(tats){
   const ontem=new Date(today0().getTime()-DAY), out=[];
   const tat=HABITOS.filter(h=>h.tatica && h.status==="ativo" && (!tats || tats.includes(h.tatica)));
   for(let w=1;w<=12;w++){
+    // fase base: a laje mede tijolos (dias válidos) ÷ 5
+    if(!tats && w>=BASE_INI){ const ws0=new Date(START.getTime()+(w-1)*7*DAY); if(ws0>today0()){ out.push(null); continue; }
+      out.push(Math.min(100,Math.round(baseSemana(w).filter(d=>d.ok).length/5*100))); continue; }
     const ws=new Date(START.getTime()+(w-1)*7*DAY); let s=0, pl=0;
     for(let i=0;i<7;i++){ const d=new Date(ws.getTime()+i*DAY); if(d>ontem) break; const k=key(d); tat.forEach(h=>{ if(aplica(h,k)){ pl++; s+=val(DIAS[k]?.[h.id]); } }); }
     out.push(pl?Math.round(s/pl*100):null);
   }
   return out;
 }
+// ---------- Fase base (revisão de 11/11): a partir da S7 a laje mede a versão mínima ----------
+// 4 itens (hábitos já existentes): treino · meditação · leitura · sono (deitar até 22:30 → cama). Dia válido = 3 de 4. Laje acesa = 5 dias válidos.
+const BASE_INI=7, BASE_DATA="2026-11-11", FERIAS=["2026-11-13","2026-11-20"];
+const M_ITENS=[["treino","🏃","Treino","conforme o plano"],["med","🧘","Meditação","5 min"],["leit","📖","Leitura","10 páginas"],["cama","🌙","Sono","deitar até 22:30"]];
+function mItensDia(k){ const x=DIAS[k]||{}, dom=new Date(k+"T12:00:00").getDay()===0;
+  return M_ITENS.map(([id])=>id==="treino"&&dom?true:x[id]==="y"); }
+const mFeitos=k=>mItensDia(k).filter(Boolean).length, diaValido=k=>mFeitos(k)>=3;
+function baseSemana(w){ // dias válidos da semana w (dias fechados até ontem, + hoje se já válido)
+  const ws=new Date(START.getTime()+(w-1)*7*DAY), t0=today0(), dias=[];
+  for(let i=0;i<7;i++){ const d=new Date(ws.getTime()+i*DAY), k=key(d); dias.push({k,d,fut:d>t0,hoje:+d===+t0,n:mFeitos(k),ok:diaValido(k)}); }
+  return dias;
+}
+function seqValidos(){ let s=0, d=today0(); if(!diaValido(key(d))) d=new Date(d.getTime()-DAY); for(;;){ if(diaValido(key(d))){ s++; d=new Date(d.getTime()-DAY); } else break; } return s; }
+function renderMinimo(){
+  const t0=today0(), k=key(t0), feitos=mItensDia(k), dom=t0.getDay()===0, fer=k>=FERIAS[0]&&k<=FERIAS[1];
+  $("#mTitle").textContent=`Mínimo de hoje · ${pad(t0.getDate())}/${pad(t0.getMonth()+1)}`;
+  $("#mSub").textContent=`${feitos.filter(Boolean).length} de 4 · ${diaValido(k)?"dia válido ✓":"3 de 4 = dia válido"}${fer?" · 🏖️ férias":""}`;
+  $("#mItens").innerHTML=M_ITENS.map(([id,ic,n,min],i)=>`<button type="button" class="m-item${feitos[i]?" on":""}" data-m="${id}"${id==="treino"&&dom?" disabled":""}><span class="ic">${ic}</span><b>${n}</b><small>${id==="treino"&&dom?"domingo: descanso conta":min}</small></button>`).join("");
+  const cw=curWeekOf(t0), dias=baseSemana(Math.min(cw,12)), val=dias.filter(d=>d.ok).length;
+  const SD=["dom","seg","ter","qua","qui","sex","sáb"];
+  $("#mBricks").innerHTML=dias.map(d=>`<div><i class="${d.ok?"ok":d.n>=2&&!d.fut?"meio":""}${d.hoje?" hoje":""}${d.fut?" fut":""}" title="${d.k}: ${d.n} de 4"></i>${SD[d.d.getDay()]}</div>`).join("");
+  $("#mLajeTxt").textContent=`· S${Math.min(cw,12)} · ${val} de 5 tijolos ${val>=5?"· laje acesa 🔆":""}`;
+  const s=seqValidos(), ontemOk=diaValido(key(new Date(t0.getTime()-DAY)));
+  $("#mStreak").textContent = s>0 ? `Sequência: ${s} ${s===1?"dia válido":"dias válidos"} seguidos.` : (!ontemOk&&!diaValido(k)&&cw>=BASE_INI ? "Ontem não fechou. Nunca falhe 2×: hoje basta 3 de 4." : "Comece hoje: 3 de 4 já assenta o primeiro tijolo.");
+  if(document.activeElement!==$("#mFrase")) carregarFraseMin(k);
+}
+let MFK=null;
+async function carregarFraseMin(k){ if(!UID||MFK===k) return; MFK=k; try{ const s=await getDoc(doc(db,"users",UID,"diario",k)); $("#mFrase").value=s.exists()?(s.data().frase||""):""; }catch(e){} }
+$("#mItens").addEventListener("click",async e=>{ const b=e.target.closest("[data-m]"); if(!b||!UID) return;
+  const k=key(today0()), id=b.dataset.m, nv=DIAS[k]?.[id]==="y"?null:"y";
+  const novo={...(DIAS[k]||{}),[id]:nv}; DIAS[k]=novo; renderMinimo();
+  try{ await setDoc(doc(db,"users",UID,"dias",k),{[id]:nv, notaDia:notaDia(novo,k).nota},{merge:true}); }catch(err){ $("#mSub").textContent="Não salvou: "+err.code; } });
+let MFT=null;
+$("#mFrase").addEventListener("input",()=>{ $("#mFraseMsg").textContent="escrevendo…"; clearTimeout(MFT); MFT=setTimeout(async()=>{
+  const k=key(today0()); try{ const ref=doc(db,"users",UID,"diario",k), s=await getDoc(ref), v={...(s.exists()?s.data():{}),frase:$("#mFrase").value};
+    await setDoc(ref,{frase:v.frase,data:k,md:mdDiario(k,v),pendente:true,atualizadoMs:Date.now()},{merge:true});
+    $("#mFraseMsg").textContent="salvo · vai para o Diário"; if(DK===k) dIn("frase").value=v.frase; }catch(e){ $("#mFraseMsg").textContent="Não salvou: "+e.code; } },1200); });
+
 const OB_FASES=[
   {n:"Fundação",de:1,ate:3,t:"Rotina e registro instalados: linha de base do sono, Big 3 diário, primeira revisão semanal."},
-  {n:"Estrutura",de:4,ate:6,t:"Primeiras lajes à vista. Marco: deitar até 22:00 em 5 de 7 noites. Semana 6 = revisão do meio do ciclo (08/11)."},
-  {n:"Instalações",de:7,ate:9,t:"Fase de maior risco de abandono. Versão mínima, nunca tudo ou nada. Marco: 3 de 5 pendências financeiras."},
-  {n:"Acabamento",de:10,ate:12,t:"Fechar as metas e deixar o resultado visível. Entrega em 20/12."},
+  {n:"Estrutura",de:4,ate:6,t:"As lajes não subiram: o sistema grande caiu inteiro (tudo ou nada). O diagnóstico de 11/11 reprojetou a obra."},
+  {n:"Reforço",de:7,ate:8,t:"Fase base, com férias de 13 a 20/11: treino, meditação, leitura e sono. 3 de 4 = tijolo · 5 tijolos = laje acesa."},
+  {n:"Acabamento",de:9,ate:12,t:"Volta ao trabalho: entra um tema por semana (ver o dia, lista, academia direto, louça), só se a laje anterior acendeu."},
   {n:"Habite-se",de:13,ate:13,t:"Semana 13 (21 a 27/12): balanço, celebrar e escolher até 3 temas do Ciclo 2."}
 ];
 const svgEl=(tag,at,par,txt)=>{ const e=document.createElementNS("http://www.w3.org/2000/svg",tag); for(const k in at) e.setAttribute(k,at[k]); if(txt!=null) e.textContent=txt; par.appendChild(e); return e; };
@@ -933,11 +1006,17 @@ function renderObra(){
   $("#obFisico").textContent=`${fisico}% do prédio`;
   // enquadramento: até a S6 mostra o feito; da S7 em diante, o que falta (hipótese da pequena área)
   const prontas=Math.min(cw,13)-1;
+  // fase base: o mestre de obras fala em tijolos (dias válidos), sequência e "nunca falhe 2×"
+  const tij=cw>=BASE_INI&&cw<=12?baseSemana(cw):null, nTij=tij?tij.filter(d=>d.ok).length:0, seq=seqValidos();
+  const ontemK=key(new Date(today0().getTime()-DAY)), hojeK2=key(today0());
+  const totTij=[];for(let w=BASE_INI;w<=Math.min(cw,12);w++) totTij.push(...baseSemana(w).filter(d=>d.ok));
   $("#obMsg").innerHTML = cw===13 ? "Obra entregue. Semana de <b>vistoria</b>: balanço e próximo ciclo."
     : cw<=6 ? (prontas===0?"Fundação pronta. <b>A 1ª laje</b> sobe agora.":`<b>${prontas} ${prontas===1?"laje":"lajes"}</b> de pé. Esta semana sobe a ${cw}ª.`)
-    : `Faltam <b>${13-cw} ${13-cw===1?"laje":"lajes"}</b> para o habite-se.`;
+    : nTij>=5 ? `Laje ${cw} <b>acesa</b> 🔆. Cada tijolo a mais agora é reforço.`
+    : (!diaValido(ontemK)&&!diaValido(hojeK2)&&seq===0&&totTij.length) ? `Ontem faltou tijolo. <b>Nunca falhe 2×</b>: hoje 3 de 4 já basta.`
+    : `<b>${nTij} de 5 tijolos</b> na laje ${cw}. ${5-nTij===1?"Falta 1":"Faltam "+(5-nTij)} para acender.`;
   const rest=fase.ate-cw;
-  $("#obSprint").textContent = cw===13 ? fase.t : (rest===0?`Última semana da ${fase.n.toLowerCase()}. Feche bem. `:`Faltam ${rest} ${rest===1?"semana":"semanas"} para fechar a ${fase.n.toLowerCase()}. `)+fase.t;
+  $("#obSprint").textContent = (tij?`Sequência: ${seq} ${seq===1?"dia válido":"dias válidos"} · ${totTij.length} ${totTij.length===1?"tijolo assentado":"tijolos assentados"} desde o reforço. `:"") + (cw===13 ? fase.t : (rest===0?`Última semana da ${fase.n.toLowerCase()}. Feche bem. `:`Faltam ${rest} ${rest===1?"semana":"semanas"} para fechar a ${fase.n.toLowerCase()}. `)+fase.t);
   const m=MILES.find(x=>x[0]>=cw)||MILES[MILES.length-1];
   $("#obMarco").textContent=`S${m[0]} · ${m[1]} · ${m[2]}`;
   $("#obPhases").innerHTML=OB_FASES.map(f=>`<div class="ob-phase${f===fase?" now":""}"><span class="eyebrow">${f.de===f.ate?"S"+f.de:`S${f.de}–S${f.ate}`}</span><h3>${f.n}</h3><p>${f.t}</p></div>`).join("");
@@ -959,8 +1038,15 @@ function renderObra(){
     const y=fy(i), v=sc[i-1], fut=i>cw, cur=i===cw, has=v!=null&&!fut, hi=has&&v>=85;
     svgEl("rect",{x:X,y,width:W,height:FH,fill:has?(hi?"var(--lit-soft)":"var(--surface)"):"transparent",stroke:cur?"var(--lit)":fut?"var(--idle)":"var(--plan)","stroke-width":cur?2.5:1.2,"stroke-dasharray":fut?"5 4":"none"},svg);
     if(has) svgEl("rect",{x:X,y:y+FH-4,width:W,height:4,fill:hi?"var(--lit)":"var(--plan)"},svg);
+    if(i>=BASE_INI){
+      // fase base: 7 tijolos (um por dia) · cheio = dia válido · meio = 2 de 4
+      const dd=fut?[]:baseSemana(i);
+      for(let k=0;k<7;k++){ const d=dd[k], f=!d||d.fut, ok=d&&d.ok, meio=d&&!d.fut&&!d.ok&&d.n>=2;
+        svgEl("rect",{x:X+30+k*20,y:y+8,width:16,height:FH-17,rx:1.5,fill:ok?"var(--lit)":meio?"var(--lit-soft)":"transparent",stroke:f?"var(--idle)":"var(--plan)","stroke-width":d&&d.hoje?1.8:.9,"stroke-dasharray":f?"2 2":"none"},svg); }
+    } else {
     const acende=has?Math.round(v/100*6):0;
     for(let k=0;k<6;k++) svgEl("rect",{x:X+36+k*22,y:y+8,width:14,height:FH-17,fill:k<acende?"var(--lit)":"transparent",stroke:fut?"var(--idle)":"var(--plan)","stroke-width":.9,"stroke-dasharray":fut?"2 2":"none"},svg);
+    }
     svgEl("text",{x:X+8,y:y+FH/2+4,"font-family":"var(--f-mono)","font-size":11,fill:fut?"var(--muted)":"var(--ink)"},svg,"S"+i);
     svgEl("text",{x:X+W-6,y:y+FH/2+4,"text-anchor":"end","font-family":"var(--f-mono)","font-size":11,fill:"var(--muted)"},svg,has?v+"%"+(cur?"*":""):(!fut?"s/ reg.":""));
   }
@@ -971,8 +1057,10 @@ function renderObra(){
     svgEl("line",{x1:X-22,y1:yB-3,x2:X-16,y2:yB-3,stroke:c,"stroke-width":1.5},svg);
     svgEl("text",{x:X-30,y:(yT+yB)/2+4,"text-anchor":"end","font-family":"var(--f-display)","font-size":15,"font-weight":700,fill:now?"var(--lit)":"var(--ink)"},svg,f.n.toUpperCase());
     svgEl("text",{x:X-30,y:(yT+yB)/2+18,"text-anchor":"end","font-family":"var(--f-mono)","font-size":9.5,fill:"var(--muted)"},svg,`S${f.de}–S${f.ate}`);
+    if(f.n==="Reforço") svgEl("text",{x:X-30,y:(yT+yB)/2+31,"text-anchor":"end","font-family":"var(--f-mono)","font-size":9.5,fill:"var(--muted)"},svg,"🏖️ férias 13–20/11");
   });
-  const ry=fy(12), hab=cw===13, hc=hab?"var(--lit)":"var(--idle)";
+  // viga de reforço entre a S6 e a S7: a obra foi reprojetada em 11/11, não abandonada
+  svgEl("rect",{x:X-6,y:fy(6)-3,width:W+12,height:5,fill:"var(--lit)",rx:1},svg);  const ry=fy(12), hab=cw===13, hc=hab?"var(--lit)":"var(--idle)";
   svgEl("line",{x1:X+W/2,y1:ry,x2:X+W/2,y2:ry-30,stroke:hc,"stroke-width":2,"stroke-dasharray":hab?"none":"4 3"},svg);
   svgEl("path",{d:`M${X+W/2-6} ${ry-30} l6 -12 l6 12`,fill:"none",stroke:hc,"stroke-width":2},svg);
   svgEl("text",{x:X+W/2+14,y:ry-24,"font-family":"var(--f-mono)","font-size":10.5,fill:hab?"var(--lit)":"var(--muted)"},svg,"S13 · HABITE-SE (21–27/12)");
@@ -1039,6 +1127,7 @@ function renderAll(){
     [["Pendências resolvidas","resultado","0/5","ver Obsidian","5/5"],["Serviços renegociados","resultado","0/3","ver Obsidian","3/3"],["Ações financeiras feitas","esforço","0",String(inCycle.filter(k=>DIAS[k].fin==="y").length),"12"]],
   ];
   try{ renderObra(); }catch(e){ console.error("Obra:",e); } // a aba visual nunca derruba o resto
+  try{ renderMinimo(); }catch(e){ console.error("Mínimo:",e); }
   $("#goals").innerHTML=GOALS.map((g,i)=>`<article class="goal"><div class="goal-top"><h3>${g.icon} Meta ${i+1} · ${g.name}</h3><span class="eyebrow">${g.tactics.reduce((a,t)=>a+t[2],0)} táticas / semana</span></div><p class="muted">${g.target}</p><div class="cols"><div class="tbl"><table><thead><tr><th>Indicador</th><th class="r">Base</th><th class="r">Atual</th><th class="r">Meta</th></tr></thead><tbody>${IND[i].map(x=>`<tr><td>${x[0]}<br><span class="kind">${x[1]}</span></td><td class="r num">${x[2]}</td><td class="r num">${x[3]}</td><td class="r num">${x[4]}</td></tr>`).join("")}</tbody></table></div><div class="tbl"><table><thead><tr><th>Tática</th><th class="r">Por semana</th></tr></thead><tbody>${g.tactics.map(t=>`<tr><td><span class="kind">${t[0]}</span> ${t[1]}</td><td class="r num">${t[2]}×</td></tr>`).join("")}</tbody></table></div></div></article>`).join("");
   $("#miles").innerHTML=MILES.map(m=>`<li class="${m[0]<cw?"done":""}"><span class="w">S${m[0]}</span><span class="num muted" style="font-size:.85rem">${m[1]}</span><span>${m[2]}</span></li>`).join("");
 
@@ -1332,7 +1421,8 @@ async function salvarInd(k,id,bruto){
   else if(!/^\d{1,2}:\d{2}$/.test(v)){ $("#indMsg").textContent="Horário inválido: use HH:MM."; renderInd(); return; }
   const upd={[id]:v};
   // o horário de deitar marca sozinho o hábito "Deitou até 22:00"
-  if(id==="deitar" && v) upd.cama = minInd(x,v) <= minInd(x,"22:00") ? "y" : "n";
+  // desde a fase base (09/11) o limite do sono mínimo é 22:30
+  if(id==="deitar" && v) upd.cama = minInd(x,v) <= minInd(x,k>="2026-11-09"?"22:30":"22:00") ? "y" : "n";
   const novo={...(DIAS[k]||{}),...upd}; DIAS[k]=novo; renderInd();
   try{ await setDoc(doc(db,"users",UID,"dias",k),{...upd, notaDia:notaDia(novo,k).nota},{merge:true});
     // horas de sono calculadas ficam gravadas no dia em que acordou (para a revisão e para o histórico)
